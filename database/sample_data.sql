@@ -32,10 +32,10 @@ INSERT INTO UserSkills (user_id, skill_id, type) VALUES
 
 -- Add some fake verification records
 INSERT INTO Verifications (user_id, skill_id, status, verified_by) VALUES
-(1, 1, 'approved', 'admin_moreen'),
-(2, 2, 'approved', 'admin_moreen'),
+(1, 1, 'approved', 'admin_one'),
+(2, 2, 'approved', 'admin_one'),
 (4, 4, 'pending', NULL),
-(5, 3, 'approved', 'admin_emna');
+(5, 3, 'approved', 'admin_two');
 
 -- Add some fake completed skill exchanges
 INSERT INTO Projects (user_id, skill_id, description, date) VALUES
