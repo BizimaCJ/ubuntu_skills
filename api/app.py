@@ -105,7 +105,7 @@ def add_skill():
     except Exception as e:
         return error_response(str(e), 500)
     
-#view users skill endpoint [POST method]
+#view users skill endpoint [GET method]
 @app.route("/api/users/<int:user_id>/skills", methods=["GET"])
 def get_user_skills(user_id):
     """
