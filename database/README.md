@@ -1,6 +1,6 @@
-# UbuntuSwap Database
+# UbuntuSkills Database
 
-This folder contains the database design and setup for the UbuntuSwap project, a skill exchange platform where users can teach and learn skills from each other without money involved.
+This folder contains the database design and setup for the UbuntuSkills project, a skill exchange platform where users can teach and learn skills from each other without money involved.
 
 ## Team
 
@@ -14,7 +14,7 @@ This folder contains the database design and setup for the UbuntuSwap project, a
 
 ## Project Summary
 
-UbuntuSwap connects people who want to teach a skill with people who want to learn it. This database stores users, their skills, verification status, and completed exchange sessions.
+UbuntuSkills connects people who want to teach a skill with people who want to learn it. This database stores users, their skills, verification status, and completed exchange sessions.
 
 ## Files in This Folder
 
@@ -22,7 +22,7 @@ UbuntuSwap connects people who want to teach a skill with people who want to lea
 |------|---------|
 | schema.sql | Creates the 5 database tables and their relationships |
 | sample_data.sql | Adds fake data for testing |
-| ubuntuswap.db | The actual working SQLite database file |
+| ubuntuskills.db | The actual working SQLite database file |
 | README.md | This file, explaining the database setup |
 
 ## Database Tables
@@ -56,15 +56,15 @@ You need Python 3 installed. SQLite comes built into Python, so no extra install
 Run this command from the project's main folder to build the database from scratch:
 python -c "import sqlite3; conn = sqlite3.connect('database/ubuntuswap.db'); cur = conn.cursor(); cur.executescript(open('database/schema.sql').read()); cur.executescript(open('database/sample_data.sql').read()); conn.commit(); conn.close(); print('Database created successfully')"
 
-To view the data, open `ubuntuswap.db` using a free tool like DB Browser for SQLite (https://sqlitebrowser.org), or use the built-in database viewer in VS Code.
+To view the data, open `ubuntuskills.db` using a free tool like DB Browser for SQLite (https://sqlitebrowser.org), or use the built-in database viewer in VS Code.
 
 ## Security Notes
 
 - Passwords in the sample data are placeholder text, not real hashed passwords.
-- Real password hashing will be handled by the Login System (Person 2) and connected to the password field in the Users table.
+- Real password hashing will be handled by the Login System and connected to the password field in the Users table.
 
 ## Notes for the Team
 
 - All data in sample_data.sql is fake and only for testing.
-- Person 3 (APIs) and Person 5 (Integration) will use ubuntuswap.db to connect the backend to real data.
+- Person 3 (APIs) and Person 5 (Integration) will use ubuntuskills.db to connect the backend to real data.
 - If the schema changes later, update schema.sql and rebuild the database using the command above.
