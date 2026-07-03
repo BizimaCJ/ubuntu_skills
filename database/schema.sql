@@ -1,4 +1,4 @@
--- This file creates all the tables for the UbuntuSwap database
+-- This file creates all the tables for the UbuntuSkills database
 
 -- Remove old tables first, in case we run this file again
 DROP TABLE IF EXISTS Projects;
