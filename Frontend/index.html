@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ubuntu Skills</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Main navigation">
+        <a class="brand" href="#/login" aria-label="Ubuntu Skills home">
+          <span class="brand-mark">US</span>
+          <span>
+            <strong>Ubuntu Skills</strong>
+            <small>Peer skill exchange</small>
+          </span>
+        </a>
+
+        <nav class="nav-links">
+          <a href="#/login" data-route="login">
+            <span class="nav-icon" aria-hidden="true">↳</span>
+            Login
+          </a>
+          <a href="#/register" data-route="register">
+            <span class="nav-icon" aria-hidden="true">+</span>
+            Register
+          </a>
+          <a href="#/profile" data-route="profile">
+            <span class="nav-icon" aria-hidden="true">◎</span>
+            Profile
+          </a>
+          <a href="#/portfolio" data-route="portfolio">
+            <span class="nav-icon" aria-hidden="true">▦</span>
+            Portfolio
+          </a>
+        </nav>
+
+        <section class="match-panel" aria-label="Current match status">
+          <div class="mini-avatars" aria-hidden="true">
+            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=96&q=80" alt="" />
+            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=96&q=80" alt="" />
+            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=96&q=80" alt="" />
+          </div>
+          <p>3 suggested partners are ready to review.</p>
+        </section>
+      </aside>
+
+      <main class="page">
+        <header class="topbar">
+        <div>
+            <p class="eyebrow">Community learning dashboard</p>
+            <h1 id="page-title">Ubuntu Skills</h1>
+          </div>
+          <a class="top-action" href="#/profile">View Profile</a>
+        </header>
+
+        <section id="view" class="view" aria-live="polite"></section>
+      </main>
+    </div>
+
+    <template id="login-template">
+      <div class="auth-layout">
+        <section class="auth-copy">
+          <div class="photo-strip" aria-hidden="true">
+            <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80" alt="" />
+          </div>
+          <h2>Exchange skills with people who want to grow with you.</h2>
+          <p>Sign in to manage your teaching skills, learning goals, matches, and in-site conversations.</p>
+        </section>
+
+        <form class="form-panel">
+          <label>
+            Email
+            <input type="email" placeholder="you@example.com" autocomplete="email" />
+          </label>
+          <label>
+            Password
+            <input type="password" placeholder="••••••••" autocomplete="current-password" />
+          </label>
+          <div class="form-row">
+            <label class="check-label">
+              <input type="checkbox" />
+              Remember me
+            </label>
+            <a href="#/register">Create account</a>
+          </div>
+          <button type="button">Login</button>
+        </form>
+      </div>
+    </template>
+
+    <template id="register-template">
+      <div class="split-layout">
+        <section class="form-panel wide">
+          <div class="section-heading">
+            <p class="eyebrow">Create account</p>
+            <h2>Tell Ubuntu Skills what you can teach and what you want to learn.</h2>
+          </div>
+          <div class="field-grid">
+            <label>
+              Full name
+              <input type="text" placeholder="Amina Hassan" autocomplete="name" />
+            </label>
+            <label>
+              Email
+              <input type="email" placeholder="amina@example.com" autocomplete="email" />
+            </label>
+            <label>
+              Skill you can teach
+              <input type="text" placeholder="Web design, Arabic, Excel..." />
+            </label>
+            <label>
+              Skill you want to learn
+              <input type="text" placeholder="React, public speaking..." />
+            </label>
+          </div>
+          <label>
+            Short bio
+            <textarea placeholder="Share your background, availability, and preferred learning style."></textarea>
+          </label>
+          <button type="button">Register</button>
+        </section>
+
+        <aside class="info-band">
+          <h3>Matching flow</h3>
+          <ol>
+            <li>Create your profile.</li>
+            <li>Add teach and learn skills.</li>
+            <li>Review automatic matches.</li>
+            <li>Message partners inside Ubuntu Skills.</li>
+          </ol>
+        </aside>
+      </div>
+    </template>
+
+    <template id="profile-template">
+      <div class="profile-grid">
+        <section class="profile-hero">
+          <img class="avatar" src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=240&q=80" alt="Profile portrait" />
+          <div>
+            <p class="eyebrow">Active learner and mentor</p>
+            <h2>Amina Hassan</h2>
+            <p>Front-end designer teaching UI fundamentals and learning advanced JavaScript through weekly peer sessions.</p>
+            <div class="tag-row">
+              <span>Teaches UI Design</span>
+              <span>Learns JavaScript</span>
+              <span>Cairo</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="profile-section">
+          <h3>Skills I Can Teach</h3>
+          <div class="skill-list">
+            <span>Wireframing</span>
+            <span>HTML & CSS</span>
+            <span>Portfolio reviews</span>
+            <span>Design critique</span>
+          </div>
+        </section>
+
+        <section class="profile-section">
+          <h3>Skills I Want To Learn</h3>
+          <div class="skill-list learn">
+            <span>React basics</span>
+            <span>JavaScript patterns</span>
+            <span>API integration</span>
+            <span>Technical interviews</span>
+          </div>
+        </section>
+
+        <section class="conversation-panel">
+          <h3>Matched Partner</h3>
+          <div class="partner">
+            <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=120&q=80" alt="Matched partner portrait" />
+            <div>
+              <strong>Omar Khaled</strong>
+              <p>Can teach JavaScript. Wants help with portfolio design.</p>
+            </div>
+          </div>
+          <div class="message-box">
+            <p><strong>Omar:</strong> I can review React components this weekend.</p>
+            <input type="text" placeholder="Write a message..." />
+          </div>
+        </section>
+      </div>
+    </template>
+
+    <template id="portfolio-template">
+      <div class="portfolio-layout">
+        <section class="portfolio-intro">
+          <p class="eyebrow">Public portfolio</p>
+          <h2>Show what you can teach.</h2>
+          <p>Use this page to highlight examples, completed exchanges, certificates, and learning goals that help partners understand your strengths.</p>
+        </section>
+
+        <section class="project-grid">
+          <article class="project-card">
+            <img src="https://images.unsplash.com/photo-1559028006-448665bd7c7f?auto=format&fit=crop&w=640&q=80" alt="Laptop showing a design project" />
+            <div>
+              <h3>Landing Page Redesign</h3>
+              <p>Guided a peer through layout, hierarchy, and responsive CSS for a student organization website.</p>
+            </div>
+          </article>
+          <article class="project-card">
+            <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=640&q=80" alt="Online learning workspace" />
+            <div>
+              <h3>HTML & CSS Workshop</h3>
+              <p>Prepared a two-session mini course with exercises, references, and portfolio-ready tasks.</p>
+            </div>
+          </article>
+          <article class="project-card">
+            <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=640&q=80" alt="People discussing work around a table" />
+            <div>
+              <h3>Peer Review Sessions</h3>
+              <p>Completed five portfolio feedback sessions with matched learners inside Ubuntu Skills.</p>
+            </div>
+          </article>
+        </section>
+      </div>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
