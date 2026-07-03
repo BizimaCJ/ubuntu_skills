@@ -10,7 +10,6 @@
 | UserSkills | GET | `/api/users/<user_id>/skills` | View a user's skills |
 | UserSkills | DELETE | `/api/users/<user_id>/skills/<skill_id>` | Remove a skill a user listed |
 | UserSkills | GET | `/api/skills/<skill_id>/tutors` | Users who teach this skill |
-| UserSkills | GET | `/api/skills/<skill_id>/learners` | Users who want to learn this skill |
 | Verifications | POST | `/api/skills/verify` | Submit a skill for verification |
 | Verifications | GET | `/api/verifications` | List verifications (`?status=`) |
 | Verifications | GET | `/api/verifications/<verification_id>` | Single verification detail |
