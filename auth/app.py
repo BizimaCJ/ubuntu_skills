@@ -3,10 +3,13 @@ from flask_bcrypt import Bcrypt
 import sqlite3
 import os
 from config import SECRET_KEY, DATABASE
+from flask_cors import CORS
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 bcrypt = Bcrypt(app)
+
+CORS(app)
 
 # This function connects to the database
 def get_db():
