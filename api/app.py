@@ -1,9 +1,11 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from datetime import datetime
 import sqlite3
 from config import DATABASE
 
 app = Flask(__name__)
+CORS(app)
 
 #database connection
 

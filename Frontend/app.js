@@ -1,3 +1,5 @@
+const API_BASE = "http://127.0.0.1:5001";
+
 const routes = {
   login: {
     title: "Login",
@@ -33,6 +35,9 @@ function render() {
 
   pageTitle.textContent = config.title;
   view.replaceChildren(template.content.cloneNode(true));
+	if (route === "profile") {
+  		loadProfileSkills();
+	}
 
   navLinks.forEach((link) => {
     const isActive = link.dataset.route === route;
@@ -51,4 +56,26 @@ if (!window.location.hash) {
   window.location.hash = "#/login";
 } else {
   render();
+}
+
+async function loadProfileSkills() {
+  try {
+    const res = await fetch(`${API_BASE}/api/skills`);
+    const data = await res.json();
+
+    console.log("Skills from backend:", data);
+
+    const profileSection = document.querySelector(".profile-section");
+    if (!profileSection) return;
+
+    const skillList = profileSection.querySelector(".skill-list");
+    if (!skillList) return;
+
+    skillList.innerHTML = data.skills
+      .map(skill => `<span>${skill.skill_name}</span>`)
+      .join("");
+
+  } catch (err) {
+    console.error("Failed to load skills:", err);
+  }
 }
