@@ -1,4 +1,5 @@
 const API_BASE = "http://127.0.0.1:5001";
+const AUTH_BASE = "http://127.0.0.1:5000";
 
 async function apiGet(path) {
   try {
@@ -51,19 +52,28 @@ function render() {
 
   pageTitle.textContent = config.title;
   view.replaceChildren(template.content.cloneNode(true));
-	if (route === "profile") {
-  		loadProfileSkills();
-	}
 
-  navLinks.forEach((link) => {
-    const isActive = link.dataset.route === route;
-    link.classList.toggle("active", isActive);
-    if (isActive) {
-      link.setAttribute("aria-current", "page");
-    } else {
-      link.removeAttribute("aria-current");
-    }
-  });
+  if (route === "register") {
+    const form = document.querySelector(".form-panel");
+    const button = form.querySelector("button");
+
+    button.addEventListener("click", async () => {
+      const name = form.querySelector('input[placeholder="Amina Hassan"]').value;
+      const email = form.querySelector('input[type="email"]').value;
+      const password = form.querySelector('input[type="password"]').value;
+
+      const res = await fetch(`${AUTH_BASE}/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name, email, password })
+      });
+
+      const data = await res.json();
+      console.log("REGISTER RESULT:", data);
+    });
+  }
 }
 
 window.addEventListener("hashchange", render);
