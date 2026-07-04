@@ -1,5 +1,21 @@
 const API_BASE = "http://127.0.0.1:5001";
 
+async function apiGet(path) {
+  try {
+    const res = await fetch(`${API_BASE}${path}`);
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    return await res.json();
+  } catch (err) {
+    console.error("API error:", err);
+    throw err;
+  }
+}
+
+
 const routes = {
   login: {
     title: "Login",
@@ -59,23 +75,32 @@ if (!window.location.hash) {
 }
 
 async function loadProfileSkills() {
+  const profileSection = document.querySelector(".profile-section");
+  if (!profileSection) return;
+
+  const skillList = profileSection.querySelector(".skill-list");
+  if (!skillList) return;
+
+  skillList.innerHTML = "Loading...";
+
   try {
-    const res = await fetch(`${API_BASE}/api/skills`);
-    const data = await res.json();
-
-    console.log("Skills from backend:", data);
-
-    const profileSection = document.querySelector(".profile-section");
-    if (!profileSection) return;
-
-    const skillList = profileSection.querySelector(".skill-list");
-    if (!skillList) return;
+    const data = await apiGet("/api/users/1/skills?type=teach");
 
     skillList.innerHTML = data.skills
-      .map(skill => `<span>${skill.skill_name}</span>`)
+      .map(s => `<span>${s.skill_name}</span>`)
       .join("");
 
   } catch (err) {
-    console.error("Failed to load skills:", err);
+    showApiError("Backend unavailable");
   }
+}
+
+function showApiError(message) {
+  const profileSection = document.querySelector(".profile-section");
+  if (!profileSection) return;
+
+  const skillList = profileSection.querySelector(".skill-list");
+  if (!skillList) return;
+
+  skillList.innerHTML = `<span style="color:red;">${message}</span>`;
 }
