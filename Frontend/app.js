@@ -50,8 +50,15 @@ function render() {
   const config = routes[route];
   const template = document.querySelector(`#${config.template}`);
 
+  console.log("Current route:", route);
+
   pageTitle.textContent = config.title;
   view.replaceChildren(template.content.cloneNode(true));
+
+  if (route === "profile") {
+    console.log("Rendering profile");
+    loadProfileSkills();
+  }
 
   if (route === "register") {
     const form = document.querySelector(".form-panel");
@@ -85,6 +92,7 @@ if (!window.location.hash) {
 }
 
 async function loadProfileSkills() {
+  console.log("loadProfileSkills called");
   const profileSection = document.querySelector(".profile-section");
   if (!profileSection) return;
 
