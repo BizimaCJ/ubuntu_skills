@@ -1,3 +1,11 @@
+const API_BASE = "http://127.0.0.1:5001";
+const AUTH_BASE = "http://127.0.0.1:5000";
+
+async function apiGet(path) {
+  const res = await fetch(`${API_BASE}${path}`);
+  return res.json();
+}
+
 const routes = {
   login: {
     title: "Login",
@@ -34,6 +42,60 @@ function render() {
   pageTitle.textContent = config.title;
   view.replaceChildren(template.content.cloneNode(true));
 
+  if (route === "profile") {
+    console.log("Rendering profile");
+    loadProfileSkills();
+  }
+
+  if (route === "register") {
+    const button = view.querySelector("button");
+    if (!button) return;
+
+    console.log("register handler attached");
+
+    button.onclick = async () => {
+      const inputs = view.querySelectorAll("input");
+
+      const name = inputs[0].value;
+      const email = inputs[1].value;
+      const password = inputs[2].value;
+
+      const res = await fetch(`${AUTH_BASE}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password })
+      });
+
+      const data = await res.json();
+      console.log(data);
+
+      alert(data.message || data.error);
+    };
+  }
+
+  if (route === "login") {
+    const button = view.querySelector("button");
+    if (!button) return;
+
+    button.onclick = async () => {
+      const inputs = view.querySelectorAll("input");
+
+      const email = inputs[0].value;
+      const password = inputs[1].value;
+
+      const res = await fetch(`${AUTH_BASE}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await res.json();
+      console.log(data);
+
+      alert(data.message || data.error);
+    };
+  }
+
   navLinks.forEach((link) => {
     const isActive = link.dataset.route === route;
     link.classList.toggle("active", isActive);
@@ -51,4 +113,23 @@ if (!window.location.hash) {
   window.location.hash = "#/login";
 } else {
   render();
+}
+
+async function loadProfileSkills() {
+  console.log("loadProfileSkills called");
+
+  const profileSection = document.querySelector(".profile-section");
+  if (!profileSection) return;
+
+  const skillList = profileSection.querySelector(".skill-list");
+  if (!skillList) return;
+
+  skillList.innerHTML = "Loading...";
+
+  const userId = localStorage.getItem("user_id") || 1;
+  const data = await apiGet(`/api/users/${userId}/skills?type=teach`);
+
+  skillList.innerHTML = data.skills
+    .map(s => `<span>${s.skill_name}</span>`)
+    .join("");
 }
