@@ -20,14 +20,29 @@ UbuntuSkills connects people who want to teach a skill with people who want to l
 
 ---
 
-## Files in This Folder
+## Project Structure
 
-| File | Purpose |
-|------|---------|
-| schema.sql | Creates the database tables and relationships |
-| sample_data.sql | Adds fake data for testing |
-| ubuntuskills.db | SQLite database file used by the backend |
-| README.md | Database documentation and setup guide |
+.
+├── Frontend/
+│ ├── index.html
+│ ├── app.js
+│ └── styles.css
+│
+├── api/
+│ ├── app.py
+│ ├── config.py
+│ └── pycache/
+│
+├── auth/
+│ ├── app.py
+│ └── config.py
+│
+├── database/
+│ ├── schema.sql
+│ ├── sample_data.sql
+│ └── ubuntuskills.db
+│
+├── README.md
 
 ---
 
