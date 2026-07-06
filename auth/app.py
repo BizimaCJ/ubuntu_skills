@@ -16,6 +16,22 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
+def get_or_create_skill(cursor, skill_name):
+    cursor.execute(
+        "SELECT skill_id FROM Skills WHERE LOWER(skill_name) = LOWER(?)",
+        (skill_name,)
+    )
+    skill = cursor.fetchone()
+
+    if skill:
+        return skill["skill_id"]
+
+    cursor.execute(
+        "INSERT INTO Skills (skill_name, category) VALUES (?, ?)",
+        (skill_name, "general")
+    )
+    return cursor.lastrowid
+
 # ─ REGISTER ROUTE ─
 @app.route('/register', methods=['POST'])
 def register():
@@ -48,6 +64,26 @@ def register():
             'INSERT INTO Users (name, email, password) VALUES (?, ?, ?)',
             (name, email, password_hash)
         )
+
+        user_id = cursor.lastrowid
+        conn.commit()
+        teach_skill = data.get("teach_skill")
+        learn_skill = data.get("learn_skill")
+
+        if teach_skill:
+            skill_id = get_or_create_skill(cursor, teach_skill)
+            cursor.execute(
+                "INSERT INTO UserSkills (user_id, skill_id, type) VALUES (?, ?, ?)",
+                (user_id, skill_id, "teach")
+            )
+
+        if learn_skill:
+            skill_id = get_or_create_skill(cursor, learn_skill)
+            cursor.execute(
+                "INSERT INTO UserSkills (user_id, skill_id, type) VALUES (?, ?, ?)",
+                (user_id, skill_id, "learn")
+            )
+
         conn.commit()
         conn.close()
 

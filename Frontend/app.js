@@ -44,6 +44,21 @@ function render() {
 
   if (route === "profile") {
     console.log("Rendering profile");
+
+    const userId = localStorage.getItem("user_id");
+
+    if (!userId) {
+      console.warn("No user logged in");
+      return;
+    }
+
+    const nameEl = document.querySelector(".profile-hero h2");
+    const userName = localStorage.getItem("user_name");
+
+    if (nameEl) {
+      nameEl.textContent = userName || "User";
+    }
+
     loadProfileSkills();
   }
 
@@ -53,17 +68,24 @@ function render() {
 
     console.log("register handler attached");
 
-    button.onclick = async () => {
-      const inputs = view.querySelectorAll("input");
+    button.onclick = async (e) => {
+      e.preventDefault();
 
-      const name = inputs[0].value;
-      const email = inputs[1].value;
-      const password = inputs[2].value;
-
+      const name = view.querySelector('input[name="name"]').value;
+      const email = view.querySelector('input[name="email"]').value;
+      const password = view.querySelector('input[name="password"]').value;
+      const teach_skill = view.querySelector('input[name="teach_skill"]').value;
+      const learn_skill = view.querySelector('input[name="learn_skill"]').value;
       const res = await fetch(`${AUTH_BASE}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify({
+            name,
+            email,
+            password,
+            teach_skill,
+            learn_skill
+        })
       });
 
       const data = await res.json();
@@ -92,6 +114,11 @@ function render() {
       const data = await res.json();
       console.log(data);
 
+      if (data.user?.user_id) {
+        localStorage.setItem("user_id", data.user.user_id);
+        localStorage.setItem("user_name", data.user.name);
+      }
+
       alert(data.message || data.error);
     };
   }
@@ -116,20 +143,21 @@ if (!window.location.hash) {
 }
 
 async function loadProfileSkills() {
-  console.log("loadProfileSkills called");
+  const userId = localStorage.getItem("user_id");
+  if (!userId) return;
 
-  const profileSection = document.querySelector(".profile-section");
+  const profileSection = document.querySelector(".profile-grid");
   if (!profileSection) return;
 
-  const skillList = profileSection.querySelector(".skill-list");
-  if (!skillList) return;
+  const teachBox = document.querySelector(".profile-section .skill-list");
+  const learnBox = document.querySelector(".skill-list.learn");
 
-  skillList.innerHTML = "Loading...";
+  const data = await apiGet(`/api/users/${userId}/skills`);
 
-  const userId = localStorage.getItem("user_id") || 1;
-  const data = await apiGet(`/api/users/${userId}/skills?type=teach`);
+  const teach = data.skills.filter(s => s.type === "teach");
+  const learn = data.skills.filter(s => s.type === "learn");
 
-  skillList.innerHTML = data.skills
-    .map(s => `<span>${s.skill_name}</span>`)
-    .join("");
+  teachBox.innerHTML = teach.map(s => `<span>${s.skill_name}</span>`).join("");
+  learnBox.innerHTML = learn.map(s => `<span>${s.skill_name}</span>`).join("");
 }
+
