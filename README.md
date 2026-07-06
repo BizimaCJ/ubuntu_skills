@@ -1,12 +1,12 @@
 # UbuntuSkills Database
 
-This folder contains the database design and setup for the UbuntuSkills project, a skill exchange platform where users can teach and learn skills from each other without money involved.
+This repo contains the database design and setup for the UbuntuSkills project, a skill exchange platform where users can teach and learn skills from each other.
 
 ---
 
 ## Project Summary
 
-UbuntuSkills connects people who want to teach a skill with people who want to learn it. This system stores users, their skills, verification status, and completed exchange sessions, and supports a full REST API used by the frontend application.
+UbuntuSkills connects people who want to teach a skill with people who want to learn it. This system stores users, their skills, verification status, and completed exchange sessions, and supports an API used by the frontend application.
 
 ---
 
