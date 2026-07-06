@@ -2,27 +2,21 @@ const API_BASE = "http://127.0.0.1:5001";
 const AUTH_BASE = "http://127.0.0.1:5000";
 
 async function apiGet(path) {
-  const res = await fetch(`${API_BASE}${path}`);
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE}${path}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error("API error:", err);
+    throw err;
+  }
 }
 
 const routes = {
-  login: {
-    title: "Login",
-    template: "login-template",
-  },
-  register: {
-    title: "Register",
-    template: "register-template",
-  },
-  profile: {
-    title: "Profile",
-    template: "profile-template",
-  },
-  portfolio: {
-    title: "Portfolio",
-    template: "portfolio-template",
-  },
+  login: { title: "Login", template: "login-template" },
+  register: { title: "Register", template: "register-template" },
+  profile: { title: "Profile", template: "profile-template" },
+  portfolio: { title: "Portfolio", template: "portfolio-template" }
 };
 
 const view = document.querySelector("#view");
@@ -43,21 +37,11 @@ function render() {
   view.replaceChildren(template.content.cloneNode(true));
 
   if (route === "profile") {
-    console.log("Rendering profile");
-
     const userId = localStorage.getItem("user_id");
-
-    if (!userId) {
-      console.warn("No user logged in");
-      return;
-    }
+    if (!userId) return;
 
     const nameEl = document.querySelector(".profile-hero h2");
-    const userName = localStorage.getItem("user_name");
-
-    if (nameEl) {
-      nameEl.textContent = userName || "User";
-    }
+    nameEl.textContent = localStorage.getItem("user_name") || "User";
 
     loadProfileSkills();
   }
@@ -65,8 +49,6 @@ function render() {
   if (route === "register") {
     const button = view.querySelector("button");
     if (!button) return;
-
-    console.log("register handler attached");
 
     button.onclick = async (e) => {
       e.preventDefault();
@@ -76,21 +58,14 @@ function render() {
       const password = view.querySelector('input[name="password"]').value;
       const teach_skill = view.querySelector('input[name="teach_skill"]').value;
       const learn_skill = view.querySelector('input[name="learn_skill"]').value;
+
       const res = await fetch(`${AUTH_BASE}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            name,
-            email,
-            password,
-            teach_skill,
-            learn_skill
-        })
+        body: JSON.stringify({ name, email, password, teach_skill, learn_skill })
       });
 
       const data = await res.json();
-      console.log(data);
-
       alert(data.message || data.error);
     };
   }
@@ -112,7 +87,6 @@ function render() {
       });
 
       const data = await res.json();
-      console.log(data);
 
       if (data.user?.user_id) {
         localStorage.setItem("user_id", data.user.user_id);
@@ -124,13 +98,8 @@ function render() {
   }
 
   navLinks.forEach((link) => {
-    const isActive = link.dataset.route === route;
-    link.classList.toggle("active", isActive);
-    if (isActive) {
-      link.setAttribute("aria-current", "page");
-    } else {
-      link.removeAttribute("aria-current");
-    }
+    const active = link.dataset.route === route;
+    link.classList.toggle("active", active);
   });
 }
 
@@ -146,9 +115,6 @@ async function loadProfileSkills() {
   const userId = localStorage.getItem("user_id");
   if (!userId) return;
 
-  const profileSection = document.querySelector(".profile-grid");
-  if (!profileSection) return;
-
   const teachBox = document.querySelector(".profile-section .skill-list");
   const learnBox = document.querySelector(".skill-list.learn");
 
@@ -160,4 +126,3 @@ async function loadProfileSkills() {
   teachBox.innerHTML = teach.map(s => `<span>${s.skill_name}</span>`).join("");
   learnBox.innerHTML = learn.map(s => `<span>${s.skill_name}</span>`).join("");
 }
-

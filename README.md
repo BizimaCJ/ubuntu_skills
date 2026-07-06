@@ -2,6 +2,14 @@
 
 This folder contains the database design and setup for the UbuntuSkills project, a skill exchange platform where users can teach and learn skills from each other without money involved.
 
+---
+
+## Project Summary
+
+UbuntuSkills connects people who want to teach a skill with people who want to learn it. This system stores users, their skills, verification status, and completed exchange sessions, and supports a full REST API used by the frontend application.
+
+---
+
 ## Team Members
 
 - Chance Jesca Bizima
@@ -10,82 +18,126 @@ This folder contains the database design and setup for the UbuntuSkills project,
 - Divin Semana
 - Bertrand Rusanganwa
 
-
-
-## Project Summary
-
-UbuntuSkills connects people who want to teach a skill with people who want to learn it. This database stores users, their skills, verification status, and completed exchange sessions.
+---
 
 ## Files in This Folder
 
 | File | Purpose |
 |------|---------|
-| schema.sql | Creates the 5 database tables and their relationships |
+| schema.sql | Creates the database tables and relationships |
 | sample_data.sql | Adds fake data for testing |
-| ubuntuskills.db | The actual working SQLite database file |
-| README.md | This file, explaining the database setup |
+| ubuntuskills.db | SQLite database file used by the backend |
+| README.md | Database documentation and setup guide |
+
+---
 
 ## Database Tables
 
-**Users**
-Stores everyone who signs up on the platform, including their name, email, hashed password, and bio.
+**Users**  
+Stores user accounts including name, email, hashed password, bio, and creation time.
 
-**Skills**
-A master list of all skills available on the platform, such as Graphic Design, Python Programming, and French Language.
+**Skills**  
+Master list of all skills available in the system (e.g. Python, Design, French).
 
-**UserSkills**
-Connects a user to a skill and records whether they want to teach that skill or learn it.
+**UserSkills**  
+Links users to skills and defines whether the user can teach or learn a skill.
 
-**Verifications**
-Tracks whether a user's claimed skill has been checked and approved by an admin.
+**Verifications**  
+Tracks admin approval of claimed skills.
 
-**Projects**
-Records a completed skill exchange session between two users.
+**Projects**  
+Stores completed skill exchange sessions between users.
+
+---
 
 ## Entity Relationships
 
-- One user can have many skills (through UserSkills)
-- One skill can belong to many users (through UserSkills)
-- One user can have many verifications
-- One user can have many completed projects
+- One user → many skills (via UserSkills)
+- One skill → many users (via UserSkills)
+- One user → many verifications
+- One user → many projects
+
+---
 
 ## How to Set Up the Database
 
-You need Python 3 installed. SQLite comes built into Python, so no extra installation is needed.
+Requires Python 3 (SQLite is built-in).
 
-Run this command from the project's main folder to build the database from scratch:
+Run from project root:
+
+bash
 python -c "import sqlite3; conn = sqlite3.connect('database/ubuntuswap.db'); cur = conn.cursor(); cur.executescript(open('database/schema.sql').read()); cur.executescript(open('database/sample_data.sql').read()); conn.commit(); conn.close(); print('Database created successfully')"
-
-To view the data, open `ubuntuskills.db` using a free tool like DB Browser for SQLite (https://sqlitebrowser.org), or use the built-in database viewer in VS Code.
 
 ## Security Notes
 
-- Passwords in the sample data are placeholder text, not real hashed passwords.
-- Real password hashing will be handled by the Login System and connected to the password field in the Users table.
+Sample passwords are placeholders only.
+Real passwords are stored as bcrypt hashes in the authentication system.
+Password hashing is handled in the auth service, not in SQL seed data.
 
-## Notes for the Team
-
-- All data in sample_data.sql is fake and only for testing.
-- Person 3 (APIs) and Person 5 (Integration) will use ubuntuskills.db to connect the backend to real data.
-- If the schema changes later, update schema.sql and rebuild the database using the command above.
+---
 
 ## API Endpoints Index
+Table	Method	Endpoint	Purpose
+Skills	GET	/api/skills	List all skills
+Skills	POST	/api/skills	Add skill (+ optional user link)
+Skills	GET	/api/skills/<skill_id>	Skill details
+Skills	PATCH	/api/skills/<skill_id>	Update skill
+Skills	DELETE	/api/skills/<skill_id>	Delete skill
+UserSkills	GET	/api/users/<user_id>/skills	Get user skills
+UserSkills	DELETE	/api/users/<user_id>/skills/<skill_id>	Remove user skill
+UserSkills	GET	/api/skills/<skill_id>/tutors	Tutors for a skill
+Verifications	POST	/api/skills/verify	Submit verification
+Verifications	GET	/api/verifications	List verifications
+Verifications	GET	/api/verifications/<verification_id>	Verification detail
+Verifications	GET	/api/users/<user_id>/verifications	User verification history
+Verifications	PATCH	/api/verifications/<verification_id>	Approve/reject verification
+Projects	POST	/api/projects	Log exchange session
+Projects	GET	/api/projects/<project_id>	Project detail
+Projects	GET	/api/users/<user_id>/projects	User exchange history
 
-| Table | Method | Endpoint | Purpose |
-|---|---|---|---|
-| Skills | GET | `/api/skills` | List the full skill catalog |
-| Skills | POST | `/api/skills` | Add a skill (+ optional user link) |
-| Skills | GET | `/api/skills/<skill_id>` | Single skill detail |
-| Skills | PATCH | `/api/skills/<skill_id>` | Edit a skill's name/category |
-| Skills | DELETE | `/api/skills/<skill_id>` | Remove a skill from the catalog |
-| UserSkills | GET | `/api/users/<user_id>/skills` | View a user's skills |
-| UserSkills | DELETE | `/api/users/<user_id>/skills/<skill_id>` | Remove a skill a user listed |
-| UserSkills | GET | `/api/skills/<skill_id>/tutors` | Users who teach this skill |
-| Verifications | POST | `/api/skills/verify` | Submit a skill for verification |
-| Verifications | GET | `/api/verifications` | List verifications (`?status=`) |
-| Verifications | GET | `/api/verifications/<verification_id>` | Single verification detail |
-| Verifications | GET | `/api/users/<user_id>/verifications` | A user's verification history |
-| Verifications | PATCH | `/api/verifications/<verification_id>` | Admin approve/reject |
-| Projects | POST | `/api/projects` | Log a completed skill exchange |
-| Projects | GET | `/api/projects/<project_id>` | Single project detail |
-| Projects | GET | `/api/users/<user_id>/projects` | A user's exchange history |
+---
+
+## What Has Been Completed
+
+The system is now partially integrated and functional:
+
+- Database schema is fully designed and implemented
+- Sample data has been loaded for testing
+- Backend API is fully connected to the database
+- Authentication system is working with secure password hashing
+- User registration and login flow is functional
+- Skills are stored and linked correctly to users
+- Frontend is connected to backend APIs using fetch requests
+- User profiles dynamically load skills from the database
+- REST API supports full CRUD operations for skills and verifications
+
+---
+
+## What Remains to Complete Full System
+
+To reach a fully working application, the following remains:
+
+### Core Improvements
+- Improve validation for skill inputs (prevent duplicates and empty values)
+- Ensure consistent handling of seeded users vs newly registered users
+- Strengthen API consistency across all endpoints
+
+### Feature Completion
+- Skill matching system (auto pairing teach ↔ learn users)
+- Messaging system between matched users
+- Profile editing (bio and skills updates)
+
+### System Enhancements
+- UI/UX improvements for better usability
+- Deployment of backend and frontend to a live environment
+- Optional real-time updates for matches and messaging
+
+---
+
+## Final Note
+
+The current system demonstrates a working full-stack pipeline:
+
+Frontend → Authentication Service → API Service → SQLite Database
+
+The application is functional end-to-end, and remaining work focuses on expanding features and improving user experience toward a complete production-ready platform.
