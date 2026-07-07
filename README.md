@@ -1,70 +1,134 @@
-# UbuntuSkills Database
+# UbuntuSkills Project
 
-This folder contains the database design and setup for the UbuntuSkills project, a skill exchange platform where users can teach and learn skills from each other without money involved.
+UbuntuSkills is a peer-to-peer skill exchange platform where users can teach and learn skills from each other.
 
-## Team Members
+---
 
-- Chance Jesca Bizima
-- Martha Stacey Kanogo
-- Emna Barezi
-- Divin Semana
-- Bertrand Rusanganwa
+## Project Structure
 
 
+.
+├── Frontend/
+│ ├── index.html
+│ ├── app.js
+│ └── styles.css
+│
+├── api/
+│ ├── app.py
+│ ├── config.py
+│ └── pycache/
+│
+├── auth/
+│ ├── app.py
+│ └── config.py
+│
+├── database/
+│ ├── schema.sql
+│ ├── sample_data.sql
+│ └── ubuntuskills.db
+│
+├── venv/
+├── README.md
 
-## Project Summary
 
-UbuntuSkills connects people who want to teach a skill with people who want to learn it. This database stores users, their skills, verification status, and completed exchange sessions.
+---
 
-## Files in This Folder
+## Database Overview
 
-| File | Purpose |
-|------|---------|
-| schema.sql | Creates the 5 database tables and their relationships |
-| sample_data.sql | Adds fake data for testing |
-| ubuntuskills.db | The actual working SQLite database file |
-| README.md | This file, explaining the database setup |
+The system uses SQLite with the following tables:
 
-## Database Tables
+- **Users** → Stores user accounts (name, email, hashed password, bio)
+- **Skills** → Master list of skills available on the platform
+- **UserSkills** → Links users to skills with type (teach/learn)
+- **Verifications** → Tracks skill verification status
+- **Projects** → Logs completed skill exchange sessions
 
-**Users**
-Stores everyone who signs up on the platform, including their name, email, hashed password, and bio.
+---
 
-**Skills**
-A master list of all skills available on the platform, such as Graphic Design, Python Programming, and French Language.
+## Current Implemented Features
 
-**UserSkills**
-Connects a user to a skill and records whether they want to teach that skill or learn it.
+- User registration with password hashing (bcrypt)
+- User login system
+- Skill linking (teach/learn) during registration
+- Profile display with user skills
+- REST API for skills, users, verifications, and projects
+- SQLite database integration
+- Frontend routing system (login, register, profile, portfolio)
 
-**Verifications**
-Tracks whether a user's claimed skill has been checked and approved by an admin.
+---
 
-**Projects**
-Records a completed skill exchange session between two users.
+## API Endpoints Summary
 
-## Entity Relationships
+### Skills
+- GET `/api/skills`
+- POST `/api/skills`
+- GET `/api/skills/<skill_id>`
+- PATCH `/api/skills/<skill_id>`
+- DELETE `/api/skills/<skill_id>`
 
-- One user can have many skills (through UserSkills)
-- One skill can belong to many users (through UserSkills)
-- One user can have many verifications
-- One user can have many completed projects
+### User Skills
+- GET `/api/users/<user_id>/skills`
+- DELETE `/api/users/<user_id>/skills/<skill_id>`
+- GET `/api/skills/<skill_id>/tutors`
 
-## How to Set Up the Database
+### Verifications
+- POST `/api/skills/verify`
+- GET `/api/verifications`
+- GET `/api/verifications/<id>`
+- PATCH `/api/verifications/<id>`
+- GET `/api/users/<user_id>/verifications`
 
-You need Python 3 installed. SQLite comes built into Python, so no extra installation is needed.
+### Projects
+- POST `/api/projects`
+- GET `/api/projects/<id>`
+- GET `/api/users/<user_id>/projects`
 
-Run this command from the project's main folder to build the database from scratch:
-python -c "import sqlite3; conn = sqlite3.connect('database/ubuntuswap.db'); cur = conn.cursor(); cur.executescript(open('database/schema.sql').read()); cur.executescript(open('database/sample_data.sql').read()); conn.commit(); conn.close(); print('Database created successfully')"
+---
 
-To view the data, open `ubuntuskills.db` using a free tool like DB Browser for SQLite (https://sqlitebrowser.org), or use the built-in database viewer in VS Code.
+## Setup Instructions
 
-## Security Notes
+### 1. Create virtual environment
+bash
+python -m venv venv
 
-- Passwords in the sample data are placeholder text, not real hashed passwords.
-- Real password hashing will be handled by the Login System and connected to the password field in the Users table.
+### 2. Activate environment
+source venv/bin/activate   # Linux/Mac
+venv\Scripts\activate      # Windows
 
-## Notes for the Team
+### 3. Install dependencies
+pip install flask flask-cors flask-bcrypt
 
-- All data in sample_data.sql is fake and only for testing.
-- Person 3 (APIs) and Person 5 (Integration) will use ubuntuskills.db to connect the backend to real data.
-- If the schema changes later, update schema.sql and rebuild the database using the command above.
+### 4. Run backend services
+
+API server:
+
+python api/app.py
+
+Auth server:
+
+python auth/app.py
+
+### 5. Run frontend
+
+Open:
+
+Frontend/index.html
+
+in a browser
+
+---
+
+## Notes
+Passwords are stored securely using bcrypt hashing
+Database is SQLite for simplicity
+Frontend communicates with backend via REST APIs
+This project is in active development and not fully complete
+
+---
+
+## Next Steps (Incomplete Features)
+Full user profile editing (bio update, avatar support)
+Messaging system between matched users
+Improved skill matching algorithm
+Deployment to cloud platform
+UI refinement and validation improvements
