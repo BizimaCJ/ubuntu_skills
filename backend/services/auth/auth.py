@@ -1,39 +1,15 @@
 from flask import Flask, request, jsonify, session
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
-import sqlite3
-import os
-from config import SECRET_KEY, DATABASE
-from flask_cors import CORS
+from config import SECRET_KEY
+import db_client
+from db_client import DBServiceError
 
 app = Flask(__name__)
 CORS(app)
 app.secret_key = SECRET_KEY
 bcrypt = Bcrypt(app)
 
-CORS(app)
-
-# This function connects to the database
-def get_db():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def get_or_create_skill(cursor, skill_name):
-    cursor.execute(
-        "SELECT skill_id FROM Skills WHERE LOWER(skill_name) = LOWER(?)",
-        (skill_name,)
-    )
-    skill = cursor.fetchone()
-
-    if skill:
-        return skill["skill_id"]
-
-    cursor.execute(
-        "INSERT INTO Skills (skill_name, category) VALUES (?, ?)",
-        (skill_name, "general")
-    )
-    return cursor.lastrowid
 
 # ─ REGISTER ROUTE ─
 @app.route('/register', methods=['POST'])
@@ -48,50 +24,33 @@ def register():
     if not name or not email or not password:
         return jsonify({'error': 'All fields are required'}), 400
 
-    # Hash the password before saving
-    password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
-
     try:
-        conn = get_db()
-        cursor = conn.cursor()
-
         # Check if email already exists
-        cursor.execute('SELECT * FROM Users WHERE email = ?', (email,))
-        existing_user = cursor.fetchone()
-
+        existing_user = db_client.get_user_by_email(email)
         if existing_user:
             return jsonify({'error': 'Email already registered'}), 409
 
-        # Save new user to database
-        cursor.execute(
-            'INSERT INTO Users (name, email, password) VALUES (?, ?, ?)',
-            (name, email, password_hash)
-        )
+        # Hash the password before saving
+        password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
 
-        user_id = cursor.lastrowid
-        conn.commit()
+        # Save new user to database
+        user_id = db_client.insert_user(name, email, password_hash)
+
         teach_skill = data.get("teach_skill")
         learn_skill = data.get("learn_skill")
 
         if teach_skill:
-            skill_id = get_or_create_skill(cursor, teach_skill)
-            cursor.execute(
-                "INSERT INTO UserSkills (user_id, skill_id, type) VALUES (?, ?, ?)",
-                (user_id, skill_id, "teach")
-            )
+            skill_id = db_client.get_or_create_skill_id(teach_skill)
+            db_client.insert_user_skill(user_id, skill_id, "teach")
 
         if learn_skill:
-            skill_id = get_or_create_skill(cursor, learn_skill)
-            cursor.execute(
-                "INSERT INTO UserSkills (user_id, skill_id, type) VALUES (?, ?, ?)",
-                (user_id, skill_id, "learn")
-            )
-
-        conn.commit()
-        conn.close()
+            skill_id = db_client.get_or_create_skill_id(learn_skill)
+            db_client.insert_user_skill(user_id, skill_id, "learn")
 
         return jsonify({'message': 'User registered successfully'}), 201
 
+    except DBServiceError as e:
+        return jsonify({'error': e.message}), e.status_code
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -109,13 +68,8 @@ def login():
         return jsonify({'error': 'Email and password are required'}), 400
 
     try:
-        conn = get_db()
-        cursor = conn.cursor()
-
         # Look up user by email
-        cursor.execute('SELECT * FROM Users WHERE email = ?', (email,))
-        user = cursor.fetchone()
-        conn.close()
+        user = db_client.get_user_by_email(email)
 
         if not user:
             return jsonify({'error': 'Invalid email or password'}), 401
@@ -135,6 +89,8 @@ def login():
         else:
             return jsonify({'error': 'Invalid email or password'}), 401
 
+    except DBServiceError as e:
+        return jsonify({'error': e.message}), e.status_code
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -147,4 +103,4 @@ def logout():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5000, use_reloader=False)

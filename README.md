@@ -8,28 +8,61 @@ UbuntuSkills is a peer-to-peer skill exchange platform where users can teach and
 
 
 .
-├── Frontend/
+├── backend/
+│ ├── services/
+│ │ ├── api/
+│ │ │ ├── api.py          # HTTP routes, validation, status codes
+│ │ │ ├── db_client.py     # calls database_service over HTTP - no sqlite3 here
+│ │ │ └── config.py
+│ │ │
+│ │ ├── auth/
+│ │ │ ├── auth.py          # register/login/logout routes
+│ │ │ ├── db_client.py     # calls database_service over HTTP - no sqlite3 here
+│ │ │ └── config.py
+│ │ │
+│ │ └── database_service/
+│ │   ├── db_service.py    # the ONLY service that opens the .db file / runs SQL
+│ │   └── config.py
+│ │
+│ └── database/
+│   ├── schema.sql
+│   ├── sample_data.sql
+│   └── ubuntuskills.db
+│
+├── frontend/
 │ ├── index.html
 │ ├── app.js
 │ └── styles.css
 │
-├── api/
-│ ├── app.py
-│ ├── config.py
-│ └── pycache/
-│
-├── auth/
-│ ├── app.py
-│ └── config.py
-│
-├── database/
-│ ├── schema.sql
-│ ├── sample_data.sql
-│ └── ubuntuskills.db
-│
 ├── venv/
 ├── README.md
 
+
+---
+
+## Architecture
+
+`api` and `auth` don't talk to SQLite directly. All database access goes
+through a dedicated `database_service`:
+
+```
+frontend  --->  api (5001)   --->  database_service (5002)  --->  ubuntuskills.db
+          --->  auth (5000)  --->  database_service (5002)  --->  ubuntuskills.db
+```
+
+- `database_service` (entrypoint: `db_service.py`) is the single process that
+  imports `sqlite3` and knows the database file's location. It exposes small
+  JSON endpoints, one per query (e.g. `GET /skills/<id>`, `POST /users`),
+  each using parametrized SQL.
+- `api` (entrypoint: `api.py`) and `auth` (entrypoint: `auth.py`) keep all
+  their request validation, business rules, and HTTP status codes exactly as
+  before - they just fetch/write data by calling `database_service` (via
+  `db_client.py`) instead of running SQL themselves.
+- If `database_service` is unreachable, `api`/`auth` return a `503` instead
+  of crashing.
+- `db_client.py` in `api/` and `auth/` is intentionally a plain, small HTTP
+  wrapper (using the `requests` library) - swapping SQLite for Postgres/MySQL
+  later only means changing `database_service`, not the two callers.
 
 ---
 
@@ -52,7 +85,7 @@ The system uses SQLite with the following tables:
 - Skill linking (teach/learn) during registration
 - Profile display with user skills
 - REST API for skills, users, verifications, and projects
-- SQLite database integration
+- SQLite database integration, isolated behind a dedicated `database_service`
 - Frontend routing system (login, register, profile, portfolio)
 
 ---
@@ -89,23 +122,31 @@ source venv/bin/activate   # Linux/Mac
 venv\Scripts\activate      # Windows
 
 ### 3. Install dependencies
-pip install flask flask-cors flask-bcrypt
+pip install flask flask-cors flask-bcrypt requests
 
 ### 4. Run backend services
 
+Start these in three separate terminals, from the project root.
+`database_service` must be running before `api` or `auth`, since they call
+it for every database read/write.
+
+Database service (owns the SQLite file):
+
+python backend/services/database_service/db_service.py
+
 API server:
 
-python api/app.py
+python backend/services/api/api.py
 
 Auth server:
 
-python auth/app.py
+python backend/services/auth/auth.py
 
 ### 5. Run frontend
 
 Open:
 
-Frontend/index.html
+frontend/index.html
 
 in a browser
 
@@ -114,6 +155,7 @@ in a browser
 ## Notes
 Passwords are stored securely using bcrypt hashing
 Database is SQLite for simplicity
+Only `database_service` opens the SQLite file directly; `api` and `auth` reach it over HTTP
 Frontend communicates with backend via REST APIs
 This project is in active development and not fully complete
 
