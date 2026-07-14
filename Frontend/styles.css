@@ -100,7 +100,18 @@ p {
   text-decoration: none;
   font-weight: 700;
 }
-
+.loginError{
+  background-color: rgba(255, 0, 0, 0.412);
+  width: 100%;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: center;
+  border-radius: 10px;
+  border: red solid 2px;
+  color: white;
+  text-align: center;
+  display: none;
+}
 .nav-links a:hover,
 .nav-links a.active {
   background: var(--panel);
