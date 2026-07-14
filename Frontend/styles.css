@@ -100,17 +100,26 @@ p {
   text-decoration: none;
   font-weight: 700;
 }
-.loginError{
-  background-color: rgba(255, 0, 0, 0.412);
+.form-message {
   width: 100%;
   padding: 10px 20px;
-  display: flex;
+  display: none;
   justify-content: center;
   border-radius: 10px;
-  border: red solid 2px;
-  color: white;
   text-align: center;
-  display: none;
+  font-weight: 700;
+}
+
+.form-message.error {
+  background-color: rgba(217, 95, 67, 0.15);
+  border: 2px solid var(--coral);
+  color: #7a2f1c;
+}
+
+.form-message.success {
+  background-color: rgba(39, 111, 82, 0.15);
+  border: 2px solid var(--green);
+  color: var(--green-dark);
 }
 .nav-links a:hover,
 .nav-links a.active {
@@ -433,121 +442,6 @@ textarea:focus {
   border-radius: 8px;
   background: #f4f7f1;
 }
-.list-panel {
-  align-content: start;
-}
-
-.slot-list {
-  display: grid;
-  gap: 12px;
-}
-
-.slot-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fbfcfb;
-}
-
-.slot-card p {
-  margin: 5px 0 0;
-}
-.slot-card button {
-  min-width: 116px;
-  padding: 0 14px;
-  white-space: nowrap;
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  min-height: 32px;
-  padding: 0 10px;
-  border-radius: 8px;
-  background: #e7f3ed;
-  color: var(--green-dark);
-  font-size: 0.86rem;
-  font-weight: 800;
-}
-
-.status-pill.booked {
-  background: #fff1dc;
-  color: #793c25;
-}
-
-.secondary-action {
-  background: var(--coral);
-}
-.confirmation {
-  min-height: 24px;
-  margin: 0;
-  color: var(--green-dark);
-  font-weight: 800;
-}
-
-.tutor-summary {
-  align-content: start;
-  background: #edf4f6;
-}
-
-.chat-layout {
-  display: grid;
-  gap: 16px;
-  max-width: 920px;
-}
-
-.chat-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.chat-messages {
-  min-height: 430px;
-  max-height: 58vh;
-  align-content: end;
-  overflow-y: auto;
-  background: #f4f7f1;
-}
-
-.message-bubble {
-  max-width: min(76%, 520px);
-  padding: 14px 16px;
-  border-radius: 8px;
-  background: white;
-  box-shadow: 0 10px 25px rgba(25, 32, 29, 0.06);
-}
-
-.message-bubble.me {
-  justify-self: end;
-  background: var(--green);
-  color: white;
-}
-
-.message-bubble span {
-  display: block;
-  margin-bottom: 5px;
-  font-size: 0.78rem;
-  font-weight: 800;
-}
-
-.message-bubble p {
-  margin: 0;
-  color: inherit;
-  line-height: 1.5;
-}
-
-.chat-compose {
-  grid-template-columns: minmax(0, 1fr) auto;
-  padding: 16px;
-}
-
-.chat-compose button {
-  padding: 0 18px;
-}
 
 .project-grid {
   display: grid;
@@ -573,6 +467,190 @@ textarea:focus {
 
 .project-card p {
   line-height: 1.55;
+}
+
+/* ---------- Dashboard ---------- */
+
+.dashboard-layout {
+  display: grid;
+  gap: 24px;
+}
+
+.dashboard-hero {
+  padding: clamp(22px, 4vw, 38px);
+  border-radius: 8px;
+  background: #eef5f2;
+}
+
+.dashboard-hero h2 {
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  text-transform: capitalize;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.stat-card {
+  display: grid;
+  gap: 10px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.stat-value {
+  font-size: 2.2rem;
+  color: var(--green-dark);
+}
+
+.dashboard-columns {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 20px;
+}
+
+.activity-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-list li {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f4f7f1;
+}
+
+.activity-list li strong {
+  color: var(--green-dark);
+}
+
+.quick-links {
+  display: grid;
+  gap: 10px;
+}
+
+.quick-link {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f4f7f1;
+  color: var(--green-dark);
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.quick-link:hover {
+  background: #e6efe3;
+}
+
+.empty {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* ---------- Skills catalog ---------- */
+
+.skills-layout {
+  display: grid;
+  gap: 22px;
+}
+
+.skills-intro {
+  padding: clamp(22px, 4vw, 34px);
+  border-radius: 8px;
+  background: #eef5f2;
+}
+
+.skills-search {
+  margin-top: 16px;
+  max-width: 420px;
+}
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.skill-card {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.skill-category {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #dfe9de;
+  color: var(--green-dark);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.tutors-btn {
+  justify-self: start;
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 0.85rem;
+}
+
+.tutors-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tutors-list.hidden {
+  display: none;
+}
+
+.tutor-pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #fff1dc;
+  color: #793c25;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+#logout-link {
+  cursor: pointer;
+}
+
+@media (max-width: 980px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-columns {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 980px) {
@@ -623,7 +701,8 @@ textarea:focus {
   }
 
   .field-grid,
-  .profile-grid {
+  .profile-grid,
+  .stats-grid {
     grid-template-columns: 1fr;
   }
 

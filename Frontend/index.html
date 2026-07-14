@@ -18,34 +18,20 @@
         </a>
 
         <nav class="nav-links">
-          <a href="#/login" data-route="login">
-            Login
-          </a>
-          <a href="#/register" data-route="register">
-            Register
-          </a>
-          <a href="#/profile" data-route="profile">
-            Profile
-          </a>
-          <a href="#/portfolio" data-route="portfolio">
-            Portfolio
-          </a>
-          <a href="#/availability" data-route="availability">
-            Availability
-          </a>
-          <a href="#/booking" data-route="booking">
-            Book a Tutor
-          </a>
-          <a href="#/chat" data-route="chat">
-            Chat
-          </a>
+          <a href="#/dashboard" data-route="dashboard" data-auth="user">Dashboard</a>
+          <a href="#/skills" data-route="skills">Skills</a>
+          <a href="#/profile" data-route="profile" data-auth="user">Profile</a>
+          <a href="#/portfolio" data-route="portfolio" data-auth="user">Portfolio</a>
+          <a href="#/login" data-route="login" data-auth="guest">Login</a>
+          <a href="#/register" data-route="register" data-auth="guest">Register</a>
+          <a href="#/login" id="logout-link" data-auth="user">Logout</a>
         </nav>
 
         <section class="match-panel" aria-label="Current match status">
           <div class="mini-avatars" aria-hidden="true">
-            <img src="C:\Users\rusan\Downloads\good-faces-xmSWVeGEnJw-unsplash.jpg" alt="" />
-            <img src="C:\Users\rusan\Downloads\prince-akachi-J1OScm_uHUQ-unsplash.jpg" alt="" />
-            <img src="C:\Users\rusan\Downloads\leon-elldot-f6HbVnGtNnY-unsplash.jpg" alt="" />
+            <img src="https://i.pravatar.cc/80?img=12" alt="" />
+            <img src="https://i.pravatar.cc/80?img=32" alt="" />
+            <img src="https://i.pravatar.cc/80?img=47" alt="" />
           </div>
           <p>3 suggested partners are ready to review.</p>
         </section>
@@ -53,11 +39,12 @@
 
       <main class="page">
         <header class="topbar">
-        <div>
+          <div>
             <p class="eyebrow">Community learning dashboard</p>
             <h1 id="page-title">Ubuntu Skills</h1>
           </div>
-          <a class="top-action" href="#/profile">View Profile</a>
+          <a class="top-action" href="#/dashboard" data-auth="user">View Dashboard</a>
+          <a class="top-action" href="#/login" data-auth="guest">Sign In</a>
         </header>
 
         <section id="view" class="view" aria-live="polite"></section>
@@ -68,20 +55,20 @@
       <div class="auth-layout">
         <section class="auth-copy">
           <div class="photo-strip" aria-hidden="true">
-            <img src="C:\Users\rusan\Downloads\desola-lanre-ologun-IgUR1iX0mqM-unsplash.jpg" alt="" />
+            <img src="https://picsum.photos/seed/ubuntuskills-login/900/500" alt="" />
           </div>
           <h2>Exchange skills with people who want to grow with you.</h2>
           <p>Sign in to manage your teaching skills, learning goals, matches, and in-site conversations.</p>
         </section>
 
-        <form class="form-panel">
+        <form class="form-panel" id="login-form">
           <label>
             Email
-            <input type="email" placeholder="you@example.com" autocomplete="email" required/>
+            <input type="email" name="email" placeholder="you@example.com" autocomplete="email" required />
           </label>
           <label>
             Password
-            <input required name= "password" type="password" placeholder="••••••••" autocomplete="current-password" />
+            <input required name="password" type="password" placeholder="••••••••" autocomplete="current-password" />
           </label>
           <div class="form-row">
             <label class="check-label">
@@ -91,7 +78,7 @@
             <a href="#/register">Create account</a>
           </div>
           <button type="submit">Login</button>
-          <div class="loginError" id="loginError">Invalid email or password</div>
+          <div class="form-message error" id="loginError"></div>
         </form>
       </div>
     </template>
@@ -106,21 +93,21 @@
           <div class="field-grid">
             <label>
               Full name
-              <input name = "name" type="text" placeholder="Amina Hassan" autocomplete="name" />
+              <input name="name" type="text" placeholder="Amina Hassan" autocomplete="name" required />
             </label>
             <label>
               Email
-              <input name="email" type="email" placeholder="amina@example.com" autocomplete="email" />
+              <input name="email" type="email" placeholder="amina@example.com" autocomplete="email" required />
             </label>
 
             <label>
               Password
-              <input name="password" type="password" placeholder="••••••••" autocomplete="new-password" />
+              <input name="password" type="password" placeholder="••••••••" autocomplete="new-password" required />
             </label>
 
             <label>
-              Password
-              <input type="password" placeholder="••••••••" />
+              Confirm password
+              <input name="confirm_password" type="password" placeholder="••••••••" autocomplete="new-password" required />
             </label>
             <label>
               Skill you can teach
@@ -128,14 +115,15 @@
             </label>
             <label>
               Skill you want to learn
-              <input name = "learn_skill" type="text" placeholder="React, public speaking..." />
+              <input name="learn_skill" type="text" placeholder="React, public speaking..." />
             </label>
           </div>
           <label>
             Short bio
-            <textarea name = "bio" placeholder="Share your background, availability, and preferred learning style."></textarea>
+            <textarea name="bio" placeholder="Share your background, availability, and preferred learning style."></textarea>
           </label>
           <button type="button" id="register-btn">Register</button>
+          <div class="form-message error" id="registerMessage"></div>
         </section>
 
         <aside class="info-band">
@@ -149,10 +137,78 @@
       </div>
     </template>
 
+    <template id="dashboard-template">
+      <div class="dashboard-layout">
+        <section class="dashboard-hero">
+          <div>
+            <p class="eyebrow">Welcome back</p>
+            <h2 id="dashboard-name">there</h2>
+            <p>Here's a snapshot of your teaching, learning, and exchange activity.</p>
+          </div>
+        </section>
+
+        <div class="form-message error" id="dashboard-error"></div>
+
+        <section class="stats-grid">
+          <article class="stat-card">
+            <span class="stat-label">Skills teaching</span>
+            <strong class="stat-value" id="stat-teach">–</strong>
+          </article>
+          <article class="stat-card">
+            <span class="stat-label">Skills learning</span>
+            <strong class="stat-value" id="stat-learn">–</strong>
+          </article>
+          <article class="stat-card">
+            <span class="stat-label">Completed projects</span>
+            <strong class="stat-value" id="stat-projects">–</strong>
+          </article>
+          <article class="stat-card">
+            <span class="stat-label">Verifications submitted</span>
+            <strong class="stat-value" id="stat-verifications">–</strong>
+          </article>
+        </section>
+
+        <section class="dashboard-columns">
+          <div class="profile-section">
+            <h3>Recent exchanges</h3>
+            <ul class="activity-list" id="dashboard-recent-projects">
+              <li class="empty">Loading...</li>
+            </ul>
+          </div>
+
+          <div class="profile-section">
+            <h3>Quick links</h3>
+            <div class="quick-links">
+              <a class="quick-link" href="#/skills">Browse the skill catalog</a>
+              <a class="quick-link" href="#/profile">Update your profile</a>
+              <a class="quick-link" href="#/portfolio">Manage your portfolio</a>
+            </div>
+          </div>
+        </section>
+      </div>
+    </template>
+
+    <template id="skills-template">
+      <div class="skills-layout">
+        <section class="skills-intro">
+          <p class="eyebrow">Skill catalog</p>
+          <h2>Find something to learn, or offer something to teach.</h2>
+          <p>Search the full Ubuntu Skills catalog and see who's available to tutor each skill.</p>
+          <input type="search" id="skills-search" class="skills-search" placeholder="Search skills or categories..." />
+        </section>
+
+        <div class="form-message error" id="skills-error"></div>
+
+        <section class="skills-grid" id="skills-grid">
+          <p class="empty">Loading skills...</p>
+        </section>
+      </div>
+    </template>
+
     <template id="profile-template">
       <div class="profile-grid">
         <section class="profile-hero">
-          <img class="avatar" src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=240&q=80" alt="Profile portrait" />
+          <img class="avatar" src="https://i.pravatar.cc/240?img=5" alt="Profile portrait" />
           <div>
             <p class="eyebrow">Active learner and mentor</p>
             <h2></h2>
@@ -168,27 +224,21 @@
         <section class="profile-section">
           <h3>Skills I Can Teach</h3>
           <div class="skill-list">
-            <span>Wireframing</span>
-            <span>HTML & CSS</span>
-            <span>Portfolio reviews</span>
-            <span>Design critique</span>
+            <span class="empty">No teaching skills yet.</span>
           </div>
         </section>
 
         <section class="profile-section">
           <h3>Skills I Want To Learn</h3>
           <div class="skill-list learn">
-            <span>React basics</span>
-            <span>JavaScript patterns</span>
-            <span>API integration</span>
-            <span>Technical interviews</span>
+            <span class="empty">No learning skills yet.</span>
           </div>
         </section>
 
         <section class="conversation-panel">
           <h3>Matched Partner</h3>
           <div class="partner">
-            <img src="C:\Users\rusan\Downloads\Jay.jpeg" alt="Matched partner portrait" />
+            <img src="https://i.pravatar.cc/120?img=33" alt="Matched partner portrait" />
             <div>
               <strong>Omar Khaled</strong>
               <p>Can teach JavaScript. Wants help with portfolio design.</p>
@@ -212,117 +262,27 @@
 
         <section class="project-grid">
           <article class="project-card">
-            <img src="C:\Users\rusan\Downloads\ben-kolde-bs2Ba7t69mM-unsplash.jpg" alt="Laptop showing a design project" />
+            <img src="https://picsum.photos/seed/ubuntuskills-1/600/400" alt="Laptop showing a design project" />
             <div>
               <h3>Landing Page Redesign</h3>
               <p>Guided a peer through layout, hierarchy, and responsive CSS for a student organization website.</p>
             </div>
           </article>
           <article class="project-card">
-            <img src="C:\Users\rusan\Downloads\gaining-visuals-8X5_nh8R3Vk-unsplash.jpg" alt="Online learning workspace" />
+            <img src="https://picsum.photos/seed/ubuntuskills-2/600/400" alt="Online learning workspace" />
             <div>
               <h3>HTML & CSS Workshop</h3>
               <p>Prepared a two-session mini course with exercises, references, and portfolio-ready tasks.</p>
             </div>
           </article>
           <article class="project-card">
-            <img src="C:\Users\rusan\Downloads\christina-wocintechchat-com-m-UcZcsHSp8o4-unsplash.jpg" alt="People discussing work around a table" />
+            <img src="https://picsum.photos/seed/ubuntuskills-3/600/400" alt="People discussing work around a table" />
             <div>
               <h3>Peer Review Sessions</h3>
               <p>Completed five portfolio feedback sessions with matched learners inside Ubuntu Skills.</p>
             </div>
           </article>
         </section>
-      </div>
-    </template>
-
-    <template id="availability-template">
-      <div class="dashboard-layout">
-        <section class="form-panel wide">
-          <div class="section-heading">
-            <p class="eyebrow">Tutor schedule</p>
-            <h2>Add available time slots.</h2>
-            <p>Choose a date and time learners can book for a peer learning session.</p>
-          </div>
-
-          <div class="field-grid">
-            <label>
-              Session date
-              <input id="slot-date" type="date" />
-            </label>
-            <label>
-              Start time
-              <input id="slot-time" type="time" />
-            </label>
-            <label>
-              Skill focus
-              <input id="slot-skill" type="text" placeholder="React basics, UI review..." />
-            </label>
-            <label>
-              Session length
-              <input id="slot-length" type="text" placeholder="45 minutes" />
-            </label>
-          </div>
-
-          <button id="add-slot" type="button">Add Time Slot</button>
-          <p id="availability-confirmation" class="confirmation" role="status"></p>
-        </section>
-
-        <section class="list-panel">
-          <div class="section-heading">
-            <p class="eyebrow">Open slots</p>
-            <h3>Your learner-facing availability</h3>
-          </div>
-          <div id="tutor-slots" class="slot-list"></div>
-        </section>
-      </div>
-    </template>
-
-    <template id="booking-template">
-      <div class="dashboard-layout">
-        <section class="tutor-summary">
-          <img class="avatar" src="https://images.unsplash.com/photo-1506277886164-e25aa3f4ef7f?auto=format&fit=crop&w=240&q=80" alt="Tutor portrait" />
-          <div>
-            <p class="eyebrow">Available tutor</p>
-            <h2>Omar Khaled</h2>
-            <p>JavaScript mentor helping learners move from HTML and CSS into interactive front-end projects.</p>
-            <div class="tag-row">
-              <span>JavaScript</span>
-              <span>React basics</span>
-              <span>Portfolio support</span>
-            </div>
-          </div>
-        </section>
-
-        <section class="list-panel">
-          <div class="section-heading">
-            <p class="eyebrow">Learner booking</p>
-            <h3>Open time slots</h3>
-          </div>
-          <div id="booking-slots" class="slot-list"></div>
-          <p id="booking-confirmation" class="confirmation" role="status"></p>
-        </section>
-      </div>
-    </template>
-
-    <template id="chat-template">
-      <div class="chat-layout">
-        <section class="chat-header">
-          <div class="partner">
-            <img src="https://images.unsplash.com/photo-1506277886164-e25aa3f4ef7f?auto=format&fit=crop&w=120&q=80" alt="Chat partner portrait" />
-            <div>
-              <strong>Omar Khaled</strong>
-              <p>Matched for JavaScript and portfolio design exchange</p>
-            </div>
-          </div>
-          <a class="top-action" href="#/booking">Book Session</a>
-        </section>
-         <section id="chat-messages" class="chat-messages" aria-label="Conversation messages"></section>
-
-        <form id="chat-form" class="chat-compose">
-          <input id="chat-input" type="text" placeholder="Write a message..." autocomplete="off" />
-          <button type="submit">Send</button>
-        </form>
       </div>
     </template>
 

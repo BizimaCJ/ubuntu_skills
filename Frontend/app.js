@@ -1,317 +1,348 @@
 const API_BASE = "http://127.0.0.1:5001";
 const AUTH_BASE = "http://127.0.0.1:5000";
 
+// ---------- small fetch helpers ----------
+
 async function apiGet(path) {
-  try {
-    const res = await fetch(`${API_BASE}${path}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.error("API error:", err);
-    throw err;
-  }
+  const res = await fetch(`${API_BASE}${path}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
 }
 
+async function apiPost(base, path, body) {
+  const res = await fetch(`${base}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+// ---------- auth state ----------
+
+function isLoggedIn() {
+  return localStorage.getItem("user_id") !== null;
+}
+
+function logout() {
+  localStorage.removeItem("user_id");
+  localStorage.removeItem("user_name");
+  window.location.hash = "#/login";
+  render();
+}
+
+// ---------- routing ----------
+
 const routes = {
-  login: { title: "Login", template: "login-template" },
-  register: { title: "Register", template: "register-template" },
-  profile: { title: "Profile", template: "profile-template" },
-  portfolio: { title: "Portfolio", template: "portfolio-template" },
-  availability: { title: "Availability", template: "availability-template" },
-  booking: { title: "Book Tutor", template: "booking-template" },
-  chat: { title: "Chat", template: "chat-template" }
+  login: { title: "Login", template: "login-template", auth: false },
+  register: { title: "Register", template: "register-template", auth: false },
+  dashboard: { title: "Dashboard", template: "dashboard-template", auth: true },
+  skills: { title: "Skills Catalog", template: "skills-template", auth: false },
+  profile: { title: "Profile", template: "profile-template", auth: true },
+  portfolio: { title: "Portfolio", template: "portfolio-template", auth: true },
 };
 
 const view = document.querySelector("#view");
 const pageTitle = document.querySelector("#page-title");
 
-const slots = [
-  {
-    id: 1,
-    date: "2026-07-15",
-    time: "16:00",
-    skill: "React basics",
-    length: "45 minutes",
-    booked: false,
-  },
-  {
-    id: 2,
-    date: "2026-07-17",
-    time: "11:30",
-    skill: "Portfolio review",
-    length: "30 minutes",
-    booked: false,
-  },
-  {
-    id: 3,
-    date: "2026-07-19",
-    time: "18:00",
-    skill: "JavaScript patterns",
-    length: "60 minutes",
-    booked: true,
-  },
-];
+function defaultRoute() {
+  return isLoggedIn() ? "dashboard" : "login";
+}
 
-const messages = [
-  {
-    sender: "Omar",
-    text: "Hi Amina, I have a JavaScript slot open this week if you want to book it.",
-    side: "them",
-  },
-  {
-    sender: "Amina",
-    text: "That would be great. I can help you review your portfolio after.",
-    side: "me",
-  },
-  {
-    sender: "Omar",
-    text: "Perfect. Send me the page you want to work on before the session.",
-    side: "them",
-  },
-];
 function currentRoute() {
   const route = window.location.hash.replace("#/", "");
-  return routes[route] ? route : "login";
+  return routes[route] ? route : defaultRoute();
 }
 
-function formatSlot(slot) {
-  const date = new Date(`${slot.date}T${slot.time}`);
-  return date.toLocaleString("en", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
+function updateNav() {
+  const loggedIn = isLoggedIn();
+  document.querySelectorAll("[data-auth]").forEach((el) => {
+    const needsUser = el.dataset.auth === "user";
+    const needsGuest = el.dataset.auth === "guest";
+    const shouldHide = (needsUser && !loggedIn) || (needsGuest && loggedIn);
+    el.style.display = shouldHide ? "none" : "";
   });
-}
 
-function showConfirmation(id, message) {
-  const element = document.querySelector(`#${id}`);
-  if (element) {
-    element.textContent = message;
-  }
-}
-
-function renderTutorSlots() {
-  const list = document.querySelector("#tutor-slots");
-  if (!list) return;
-
-  list.replaceChildren(
-    ...slots.map((slot) => {
-      const item = document.createElement("article");
-      item.className = "slot-card";
-      item.innerHTML = `
-        <div>
-          <strong>${formatSlot(slot)}</strong>
-          <p>${slot.skill} · ${slot.length}</p>
-        </div>
-        <span class="status-pill ${slot.booked ? "booked" : ""}">${slot.booked ? "Booked" : "Open"}</span>
-      `;
-      return item;
-    }),
-  );
-}
-
-function renderBookingSlots() {
-  const list = document.querySelector("#booking-slots");
-  if (!list) return;
-
-  list.replaceChildren(
-    ...slots.map((slot) => {
-      const item = document.createElement("article");
-      item.className = "slot-card";
-      const buttonLabel = slot.booked ? "Cancel Booking" : "Book";
-      item.innerHTML = `
-        <div>
-          <strong>${formatSlot(slot)}</strong>
-          <p>${slot.skill} · ${slot.length}</p>
-        </div>
-        <button class="${slot.booked ? "secondary-action" : ""}" type="button" data-slot-id="${slot.id}">
-          ${buttonLabel}
-        </button>
-      `;
-      return item;
-    }),
-  );
-}
-
-function renderMessages() {
-  const list = document.querySelector("#chat-messages");
-  if (!list) return;
-
-  list.replaceChildren(
-    ...messages.map((message) => {
-      const bubble = document.createElement("article");
-      bubble.className = `message-bubble ${message.side}`;
-      bubble.innerHTML = `
-        <span>${message.sender}</span>
-        <p>${message.text}</p>
-      `;
-      return bubble;
-    }),
-  );
-  list.scrollTop = list.scrollHeight;
-}
-
-function setupAvailabilityPage() {
-  renderTutorSlots();
-
-   const button = document.querySelector("#add-slot");
-  button?.addEventListener("click", () => {
-    const date = document.querySelector("#slot-date").value;
-    const time = document.querySelector("#slot-time").value;
-    const skill = document.querySelector("#slot-skill").value.trim() || "Skill exchange session";
-    const length = document.querySelector("#slot-length").value.trim() || "45 minutes";
-
-    if (!date || !time) {
-      showConfirmation("availability-confirmation", "Please choose both a date and a time.");
-      return;
-    }
-
-    slots.push({
-      id: Date.now(),
-      date,
-      time,
-      skill,
-      length,
-      booked: false,
-    });
-
-    renderTutorSlots();
-    showConfirmation("availability-confirmation", "Time slot added and now visible to learners.");
+  document.querySelectorAll("[data-route]").forEach((link) => {
+    link.classList.toggle("active", link.dataset.route === currentRoute());
   });
-}
-
-function setupBookingPage() {
-  renderBookingSlots();
-
-  const list = document.querySelector("#booking-slots");
-  list?.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-slot-id]");
-    if (!button) return;
-
-    const slot = slots.find((item) => item.id === Number(button.dataset.slotId));
-    if (!slot) return;
-
-    slot.booked = !slot.booked;
-    renderBookingSlots();
-    showConfirmation(
-      "booking-confirmation",
-      slot.booked ? "Booking confirmed. The tutor has been notified." : "Booking cancelled. The slot is open again.",
-    );
-  });
-}
-
-function setupChatPage() {
-  renderMessages();
-
-  const form = document.querySelector("#chat-form");
-  form?.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const input = document.querySelector("#chat-input");
-    const text = input.value.trim();
-    if (!text) return;
-
-    messages.push({
-      sender: "Amina",
-      text,
-      side: "me",
-    });
-    input.value = "";
-    renderMessages();
-  });
-}
-
-function setupPage(route) {
-  if (route === "availability") setupAvailabilityPage();
-  if (route === "booking") setupBookingPage();
-  if (route === "chat") setupChatPage();
 }
 
 function render() {
   const route = currentRoute();
   const config = routes[route];
-  const template = document.querySelector(`#${config.template}`);
-  const navLinks = document.querySelectorAll("[data-route]");
 
+  // Auth guards: bounce signed-out users away from protected pages,
+  // and bounce signed-in users away from login/register.
+  if (config.auth && !isLoggedIn()) {
+    window.location.hash = "#/login";
+    return;
+  }
+  if (!config.auth && (route === "login" || route === "register") && isLoggedIn()) {
+    window.location.hash = "#/dashboard";
+    return;
+  }
+
+  const template = document.querySelector(`#${config.template}`);
   pageTitle.textContent = config.title;
   view.replaceChildren(template.content.cloneNode(true));
+  updateNav();
 
-  if (route === "profile") {
-    const userId = localStorage.getItem("user_id");
-    if (!userId) return;
-
-    const nameEl = document.querySelector(".profile-hero h2");
-    nameEl.textContent = localStorage.getItem("user_name") || "User";
-
-    loadProfileSkills();
-  }
-
-  if (route === "register") {
-    const button = view.querySelector("button");
-    if (!button) return;
-
-    button.onclick = async (e) => {
-      e.preventDefault();
-
-      const name = view.querySelector('input[name="name"]').value;
-      const email = view.querySelector('input[name="email"]').value;
-      const password = view.querySelector('input[name="password"]').value;
-      const teach_skill = view.querySelector('input[name="teach_skill"]').value;
-      const learn_skill = view.querySelector('input[name="learn_skill"]').value;
-
-      const res = await fetch(`${AUTH_BASE}/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, teach_skill, learn_skill })
-      });
-
-      const data = await res.json();
-      alert(data.message || data.error);
-    };
-  }
-
-  if (route === "login") {
-    const button = view.querySelector("button");
-    if (!button) return;
-
-    button.onclick = async () => {
-      const inputs = view.querySelectorAll("input");
-
-      const email = inputs[0].value;
-      const password = inputs[1].value;
-
-      const res = await fetch(`${AUTH_BASE}/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
-      });
-
-      const data = await res.json();
-
-      if (data.user?.user_id) {
-        localStorage.setItem("user_id", data.user.user_id);
-        localStorage.setItem("user_name", data.user.name);
-      }
-
-      const error = document.getElementById('loginError');
-      error.style.display = 'block'
-      
-    };
-  }
-
-  navLinks.forEach((link) => {
-    const active = link.dataset.route === route;
-    link.classList.toggle("active", active);
-  });
+  if (route === "login") initLoginForm();
+  if (route === "register") initRegisterForm();
+  if (route === "dashboard") loadDashboard();
+  if (route === "skills") loadSkillsList();
+  if (route === "profile") initProfile();
 }
 
 window.addEventListener("hashchange", render);
 
+document.getElementById("logout-link").addEventListener("click", (e) => {
+  e.preventDefault();
+  logout();
+});
+
 if (!window.location.hash) {
-  window.location.hash = "#/login";
+  window.location.hash = `#/${defaultRoute()}`;
 } else {
   render();
+}
+
+// ---------- login ----------
+
+function initLoginForm() {
+  const form = view.querySelector("#login-form");
+  const errorBox = document.getElementById("loginError");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorBox.style.display = "none";
+
+    const email = form.querySelector('input[name="email"]').value.trim();
+    const password = form.querySelector('input[name="password"]').value;
+
+    if (!email || !password) {
+      errorBox.textContent = "Please enter your email and password.";
+      errorBox.style.display = "flex";
+      return;
+    }
+
+    try {
+      const data = await apiPost(AUTH_BASE, "/login", { email, password });
+      if (!data.user?.user_id) {
+        throw new Error(data.error || "Invalid email or password");
+      }
+      localStorage.setItem("user_id", data.user.user_id);
+      localStorage.setItem("user_name", data.user.name);
+      window.location.hash = "#/dashboard";
+      render();
+    } catch (err) {
+      errorBox.textContent = err.message || "Invalid email or password";
+      errorBox.style.display = "flex";
+    }
+  });
+}
+
+// ---------- register ----------
+
+function initRegisterForm() {
+  const button = view.querySelector("#register-btn");
+  const messageBox = document.getElementById("registerMessage");
+  if (!button) return;
+
+  button.addEventListener("click", async (e) => {
+    e.preventDefault();
+    messageBox.className = "form-message error";
+    messageBox.style.display = "none";
+
+    const name = view.querySelector('input[name="name"]').value.trim();
+    const email = view.querySelector('input[name="email"]').value.trim();
+    const password = view.querySelector('input[name="password"]').value;
+    const confirmPassword = view.querySelector('input[name="confirm_password"]').value;
+    const teach_skill = view.querySelector('input[name="teach_skill"]').value.trim();
+    const learn_skill = view.querySelector('input[name="learn_skill"]').value.trim();
+    const bio = view.querySelector('textarea[name="bio"]').value.trim();
+
+    if (!name || !email || !password) {
+      messageBox.textContent = "Name, email, and password are required.";
+      messageBox.style.display = "flex";
+      return;
+    }
+    if (password !== confirmPassword) {
+      messageBox.textContent = "Passwords do not match.";
+      messageBox.style.display = "flex";
+      return;
+    }
+
+    try {
+      const data = await apiPost(AUTH_BASE, "/register", {
+        name,
+        email,
+        password,
+        bio,
+        teach_skill,
+        learn_skill,
+      });
+
+      if (data.user?.user_id) {
+        localStorage.setItem("user_id", data.user.user_id);
+        localStorage.setItem("user_name", data.user.name);
+        window.location.hash = "#/dashboard";
+        render();
+        return;
+      }
+
+      messageBox.className = "form-message success";
+      messageBox.textContent = data.message || "Account created. You can now log in.";
+      messageBox.style.display = "flex";
+    } catch (err) {
+      messageBox.className = "form-message error";
+      messageBox.textContent = err.message || "Could not create your account.";
+      messageBox.style.display = "flex";
+    }
+  });
+}
+
+// ---------- dashboard ----------
+
+async function loadDashboard() {
+  const userId = localStorage.getItem("user_id");
+  const nameEl = document.getElementById("dashboard-name");
+  if (nameEl) nameEl.textContent = localStorage.getItem("user_name") || "there";
+
+  const errorBox = document.getElementById("dashboard-error");
+  const recentList = document.getElementById("dashboard-recent-projects");
+
+  try {
+    const [skillsData, projectsData, verificationsData] = await Promise.all([
+      apiGet(`/api/users/${userId}/skills`),
+      apiGet(`/api/users/${userId}/projects`),
+      apiGet(`/api/users/${userId}/verifications`),
+    ]);
+
+    const teachCount = skillsData.skills.filter((s) => s.type === "teach").length;
+    const learnCount = skillsData.skills.filter((s) => s.type === "learn").length;
+
+    document.getElementById("stat-teach").textContent = teachCount;
+    document.getElementById("stat-learn").textContent = learnCount;
+    document.getElementById("stat-projects").textContent = projectsData.count;
+    document.getElementById("stat-verifications").textContent = verificationsData.count;
+
+    const recent = projectsData.projects.slice(0, 5);
+    recentList.innerHTML = recent.length
+      ? recent
+          .map(
+            (p) => `
+        <li>
+          <strong>${escapeHtml(p.skill_name || "Skill exchange")}</strong>
+          <span>${escapeHtml(p.description || "No description provided.")}</span>
+        </li>`
+          )
+          .join("")
+      : '<li class="empty">No projects logged yet. Complete an exchange to see it here.</li>';
+  } catch (err) {
+    errorBox.textContent =
+      "Could not load your dashboard data. Make sure the backend services are running.";
+    errorBox.style.display = "flex";
+    ["stat-teach", "stat-learn", "stat-projects", "stat-verifications"].forEach((id) => {
+      document.getElementById(id).textContent = "–";
+    });
+    recentList.innerHTML = '<li class="empty">Unable to load recent activity.</li>';
+  }
+}
+
+// ---------- skills catalog ----------
+
+let allSkillsCache = [];
+
+async function loadSkillsList() {
+  const grid = document.getElementById("skills-grid");
+  const errorBox = document.getElementById("skills-error");
+  const searchInput = document.getElementById("skills-search");
+
+  try {
+    const data = await apiGet("/api/skills");
+    allSkillsCache = data.skills || [];
+    renderSkillsGrid(allSkillsCache);
+  } catch (err) {
+    errorBox.textContent =
+      "Could not load the skill catalog. Make sure the backend services are running.";
+    errorBox.style.display = "flex";
+    grid.innerHTML = "";
+  }
+
+  searchInput.addEventListener("input", () => {
+    const term = searchInput.value.trim().toLowerCase();
+    const filtered = allSkillsCache.filter(
+      (s) =>
+        s.skill_name.toLowerCase().includes(term) ||
+        (s.category || "").toLowerCase().includes(term)
+    );
+    renderSkillsGrid(filtered);
+  });
+}
+
+function renderSkillsGrid(skills) {
+  const grid = document.getElementById("skills-grid");
+
+  if (!skills.length) {
+    grid.innerHTML = '<p class="empty">No skills match your search.</p>';
+    return;
+  }
+
+  grid.innerHTML = skills
+    .map(
+      (s) => `
+    <article class="skill-card" data-skill-id="${s.skill_id}">
+      <div>
+        <h3>${escapeHtml(s.skill_name)}</h3>
+        <span class="skill-category">${escapeHtml(s.category || "General")}</span>
+      </div>
+      <button type="button" class="tutors-btn" data-skill-id="${s.skill_id}">See tutors</button>
+      <div class="tutors-list" id="tutors-${s.skill_id}"></div>
+    </article>`
+    )
+    .join("");
+
+  grid.querySelectorAll(".tutors-btn").forEach((btn) => {
+    btn.addEventListener("click", () => loadTutors(btn.dataset.skillId, btn));
+  });
+}
+
+async function loadTutors(skillId, button) {
+  const container = document.getElementById(`tutors-${skillId}`);
+  if (container.dataset.loaded === "true") {
+    container.classList.toggle("hidden");
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Loading...";
+
+  try {
+    const data = await apiGet(`/api/skills/${skillId}/tutors`);
+    container.innerHTML = data.tutors.length
+      ? data.tutors.map((t) => `<span class="tutor-pill">${escapeHtml(t.name)}</span>`).join("")
+      : '<span class="empty">No tutors listed yet.</span>';
+    container.dataset.loaded = "true";
+  } catch (err) {
+    container.innerHTML = '<span class="empty">Could not load tutors.</span>';
+  } finally {
+    button.disabled = false;
+    button.textContent = "See tutors";
+  }
+}
+
+// ---------- profile ----------
+
+function initProfile() {
+  const nameEl = document.querySelector(".profile-hero h2");
+  if (nameEl) nameEl.textContent = localStorage.getItem("user_name") || "User";
+  loadProfileSkills();
 }
 
 async function loadProfileSkills() {
@@ -321,11 +352,27 @@ async function loadProfileSkills() {
   const teachBox = document.querySelector(".profile-section .skill-list");
   const learnBox = document.querySelector(".skill-list.learn");
 
-  const data = await apiGet(`/api/users/${userId}/skills`);
+  try {
+    const data = await apiGet(`/api/users/${userId}/skills`);
+    const teach = data.skills.filter((s) => s.type === "teach");
+    const learn = data.skills.filter((s) => s.type === "learn");
 
-  const teach = data.skills.filter(s => s.type === "teach");
-  const learn = data.skills.filter(s => s.type === "learn");
+    teachBox.innerHTML = teach.length
+      ? teach.map((s) => `<span>${escapeHtml(s.skill_name)}</span>`).join("")
+      : '<span class="empty">No teaching skills yet.</span>';
+    learnBox.innerHTML = learn.length
+      ? learn.map((s) => `<span>${escapeHtml(s.skill_name)}</span>`).join("")
+      : '<span class="empty">No learning skills yet.</span>';
+  } catch (err) {
+    teachBox.innerHTML = '<span class="empty">Could not load skills.</span>';
+    learnBox.innerHTML = '<span class="empty">Could not load skills.</span>';
+  }
+}
 
-  teachBox.innerHTML = teach.map(s => `<span>${s.skill_name}</span>`).join("");
-  learnBox.innerHTML = learn.map(s => `<span>${s.skill_name}</span>`).join("");
+// ---------- utils ----------
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
 }
