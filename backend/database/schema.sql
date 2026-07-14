@@ -1,6 +1,8 @@
 -- This file creates all the tables for the UbuntuSkills database
-
 -- Remove old tables first, in case we run this file again
+DROP TABLE IF EXISTS Messages;
+DROP TABLE IF EXISTS Bookings;
+DROP TABLE IF EXISTS Availability;
 DROP TABLE IF EXISTS Projects;
 DROP TABLE IF EXISTS Verifications;
 DROP TABLE IF EXISTS UserSkills;
