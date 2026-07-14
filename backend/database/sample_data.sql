@@ -42,3 +42,21 @@ INSERT INTO Projects (user_id, skill_id, description, date) VALUES
 (1, 4, 'Aline received a math tutoring session from Eric.', '2026-06-10'),
 (2, 3, 'Jean had a French practice session with Sarah.', '2026-06-12'),
 (4, 1, 'Eric learned basic logo design from Aline.', '2026-06-15');
+
+-- Availability: when a tutor is free to teach
+INSERT INTO Availability (user_id, available_date, start_time, end_time, is_booked) VALUES
+(1, '2026-07-20', '10:00', '11:00', 0),
+(2, '2026-07-21', '14:00', '15:00', 0),
+(4, '2026-07-22', '09:00', '10:00', 1),
+(5, '2026-07-23', '16:00', '17:00', 0);
+
+-- Bookings: when a learner books a tutor's slot
+INSERT INTO Bookings (availability_id, learner_id, skill_id, status) VALUES
+(3, 1, 4, 'confirmed'),
+(1, 4, 1, 'pending');
+
+-- Messages: chat messages between two users
+INSERT INTO Messages (sender_id, receiver_id, message_text) VALUES
+(1, 4, 'Hi, are you still free for the math session this week?'),
+(4, 1, 'Yes, I am free on Thursday at 10am.'),
+(2, 5, 'Can you help me practice French this weekend?');
