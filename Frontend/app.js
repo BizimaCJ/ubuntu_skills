@@ -93,7 +93,9 @@ function render() {
         localStorage.setItem("user_name", data.user.name);
       }
 
-      alert(data.message || data.error);
+      const error = document.getElementById('loginError');
+      error.style.display = 'block'
+      
     };
   }
 
