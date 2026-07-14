@@ -68,11 +68,11 @@
         <form class="form-panel">
           <label>
             Email
-            <input type="email" placeholder="you@example.com" autocomplete="email" />
+            <input type="email" placeholder="you@example.com" autocomplete="email" required/>
           </label>
           <label>
             Password
-            <input name = "password" type="password" placeholder="••••••••" autocomplete="current-password" />
+            <input required name= "password" type="password" placeholder="••••••••" autocomplete="current-password" />
           </label>
           <div class="form-row">
             <label class="check-label">
@@ -81,7 +81,7 @@
             </label>
             <a href="#/register">Create account</a>
           </div>
-          <button type="button">Login</button>
+          <button type="submit">Login</button>
           <div class="loginError" id="loginError">Invalid email or password</div>
         </form>
       </div>
