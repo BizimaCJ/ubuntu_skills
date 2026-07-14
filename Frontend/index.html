@@ -30,6 +30,15 @@
           <a href="#/portfolio" data-route="portfolio">
             Portfolio
           </a>
+          <a href="#/availability" data-route="availability">
+            Availability
+          </a>
+          <a href="#/booking" data-route="booking">
+            Book a Tutor
+          </a>
+          <a href="#/chat" data-route="chat">
+            Chat
+          </a>
         </nav>
 
         <section class="match-panel" aria-label="Current match status">
@@ -224,6 +233,96 @@
             </div>
           </article>
         </section>
+      </div>
+    </template>
+
+    <template id="availability-template">
+      <div class="dashboard-layout">
+        <section class="form-panel wide">
+          <div class="section-heading">
+            <p class="eyebrow">Tutor schedule</p>
+            <h2>Add available time slots.</h2>
+            <p>Choose a date and time learners can book for a peer learning session.</p>
+          </div>
+
+          <div class="field-grid">
+            <label>
+              Session date
+              <input id="slot-date" type="date" />
+            </label>
+            <label>
+              Start time
+              <input id="slot-time" type="time" />
+            </label>
+            <label>
+              Skill focus
+              <input id="slot-skill" type="text" placeholder="React basics, UI review..." />
+            </label>
+            <label>
+              Session length
+              <input id="slot-length" type="text" placeholder="45 minutes" />
+            </label>
+          </div>
+
+          <button id="add-slot" type="button">Add Time Slot</button>
+          <p id="availability-confirmation" class="confirmation" role="status"></p>
+        </section>
+
+        <section class="list-panel">
+          <div class="section-heading">
+            <p class="eyebrow">Open slots</p>
+            <h3>Your learner-facing availability</h3>
+          </div>
+          <div id="tutor-slots" class="slot-list"></div>
+        </section>
+      </div>
+    </template>
+
+    <template id="booking-template">
+      <div class="dashboard-layout">
+        <section class="tutor-summary">
+          <img class="avatar" src="https://images.unsplash.com/photo-1506277886164-e25aa3f4ef7f?auto=format&fit=crop&w=240&q=80" alt="Tutor portrait" />
+          <div>
+            <p class="eyebrow">Available tutor</p>
+            <h2>Omar Khaled</h2>
+            <p>JavaScript mentor helping learners move from HTML and CSS into interactive front-end projects.</p>
+            <div class="tag-row">
+              <span>JavaScript</span>
+              <span>React basics</span>
+              <span>Portfolio support</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="list-panel">
+          <div class="section-heading">
+            <p class="eyebrow">Learner booking</p>
+            <h3>Open time slots</h3>
+          </div>
+          <div id="booking-slots" class="slot-list"></div>
+          <p id="booking-confirmation" class="confirmation" role="status"></p>
+        </section>
+      </div>
+    </template>
+
+    <template id="chat-template">
+      <div class="chat-layout">
+        <section class="chat-header">
+          <div class="partner">
+            <img src="https://images.unsplash.com/photo-1506277886164-e25aa3f4ef7f?auto=format&fit=crop&w=120&q=80" alt="Chat partner portrait" />
+            <div>
+              <strong>Omar Khaled</strong>
+              <p>Matched for JavaScript and portfolio design exchange</p>
+            </div>
+          </div>
+          <a class="top-action" href="#/booking">Book Session</a>
+        </section>
+         <section id="chat-messages" class="chat-messages" aria-label="Conversation messages"></section>
+
+        <form id="chat-form" class="chat-compose">
+          <input id="chat-input" type="text" placeholder="Write a message..." autocomplete="off" />
+          <button type="submit">Send</button>
+        </form>
       </div>
     </template>
 
