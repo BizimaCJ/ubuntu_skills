@@ -407,6 +407,9 @@ textarea:focus {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
+  button{
+    width: 3cm;
+  }
 }
 
 .skill-list.learn span {
