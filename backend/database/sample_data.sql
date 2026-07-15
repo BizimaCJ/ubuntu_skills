@@ -2,12 +2,13 @@
 -- None of this is real user data
 
 -- Add some fake users
+-- Password for all 5 sample users below is: password123
 INSERT INTO Users (name, email, password, bio) VALUES
-('Aline Uwase', 'aline.uwase@example.com', 'hashed_password_1', 'Second year student, loves graphic design.'),
-('Jean Baptiste', 'jean.baptiste@example.com', 'hashed_password_2', 'Coding enthusiast, wants to learn French.'),
-('Grace Mukamana', 'grace.mukamana@example.com', 'hashed_password_3', 'Small business owner, needs help with logos.'),
-('Eric Niyonzima', 'eric.niyonzima@example.com', 'hashed_password_4', 'Math tutor, wants to learn graphic design.'),
-('Sarah Umutoni', 'sarah.umutoni@example.com', 'hashed_password_5', 'French teacher, curious about coding.');
+('Aline Uwase', 'aline.uwase@example.com', '$2b$12$5MKlK7dfDccsjHPK1ia.1.hqPF88I/wkoGSP220wSMNzaZRRVYNsm', 'Second year student, loves graphic design.'),
+('Jean Baptiste', 'jean.baptiste@example.com', '$2b$12$6N25TyU6atPn/MiVWpxOK.wQP6VYa15zUbK5t5qBrshTOGfKUQrKy', 'Coding enthusiast, wants to learn French.'),
+('Grace Mukamana', 'grace.mukamana@example.com', '$2b$12$s1kZxAu8kfVbAgnyWZ5kjOFJpdYD8yj6jIdoq.w2W.GpjBFmCdWYS', 'Small business owner, needs help with logos.'),
+('Eric Niyonzima', 'eric.niyonzima@example.com', '$2b$12$hIRLGgqRrx.v5qOCHUttRO2SRghAWg3S72SpV9sKYswV3r7iVoSkG', 'Math tutor, wants to learn graphic design.'),
+('Sarah Umutoni', 'sarah.umutoni@example.com', '$2b$12$V0ICFw6XIhC6rYLZf3YAJewjfEUKJKYbQD48nMCQmkGR0qaYLhISu', 'French teacher, curious about coding.');
 
 -- Add some fake skills
 INSERT INTO Skills (skill_name, category) VALUES
