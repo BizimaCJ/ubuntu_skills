@@ -93,3 +93,31 @@ CREATE TABLE Messages (
     FOREIGN KEY (sender_id) REFERENCES Users(user_id),
     FOREIGN KEY (receiver_id) REFERENCES Users(user_id)
 );
+
+-- This table stores time slots a tutor makes available for booking
+DROP TABLE IF EXISTS Bookings;
+DROP TABLE IF EXISTS Availability;
+
+CREATE TABLE Availability (
+    slot_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tutor_id INTEGER NOT NULL,
+    skill_id INTEGER NOT NULL,
+    date TEXT NOT NULL,
+    start_time TEXT NOT NULL,
+    end_time TEXT NOT NULL,
+    is_booked INTEGER DEFAULT 0,
+    FOREIGN KEY (tutor_id) REFERENCES Users(user_id),
+    FOREIGN KEY (skill_id) REFERENCES Skills(skill_id)
+);
+
+-- This table stores bookings made by learners
+CREATE TABLE Bookings (
+    booking_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slot_id INTEGER NOT NULL,
+    learner_id INTEGER NOT NULL,
+    status TEXT DEFAULT 'pending'
+        CHECK (status IN ('pending', 'confirmed', 'cancelled')),
+    booked_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (slot_id) REFERENCES Availability(slot_id),
+    FOREIGN KEY (learner_id) REFERENCES Users(user_id)
+);
