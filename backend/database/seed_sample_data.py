@@ -45,38 +45,37 @@ CATEGORIES = [
     "Chemistry",
 ]
 
-# name, email, degree name, class year, bio, teach:[(category, description)], learn:[(category, description)]
 USERS = [
     {
-        "name": "Sofia Marchetti",
-        "email": "sofia.marchetti@sample.edu",
+        "name": "Aline Uwase",
+        "email": "aline.uwase@sample.edu",
         "degree": "Art History",
         "class_year": 2027,
-        "bio": "Painter and part-time Italian tutor. Happy to swap watercolor tips for coding help.",
-        "teach": [("Visual Arts", "Watercolor painting"), ("Languages", "Italian conversation")],
+        "bio": "Painter and part-time French tutor. Happy to swap watercolor tips for coding help.",
+        "teach": [("Visual Arts", "Watercolor painting"), ("Languages", "French conversation")],
         "learn": [("Front End Development", "Photography portfolio site")],
     },
     {
-        "name": "Noah Fischer",
-        "email": "noah.fischer@sample.edu",
+        "name": "Jean Baptiste Nkurunziza",
+        "email": "jean.nkurunziza@sample.edu",
         "degree": "Computer Science",
         "class_year": 2028,
         "bio": "First year CS student building small web apps. Looking to pick up guitar in my spare time.",
         "teach": [("Front End Development", "HTML, CSS, and vanilla JavaScript")],
-        "learn": [("Music", "Guitar basics"), ("Languages", "French for beginners")],
+        "learn": [("Music", "Guitar basics"), ("Languages", "English for beginners")],
     },
     {
-        "name": "Lin Wei",
-        "email": "lin.wei@sample.edu",
+        "name": "Grace Mukamana",
+        "email": "grace.mukamana@sample.edu",
         "degree": "Physics",
         "class_year": 2026,
         "bio": "Physics major, piano player, and calculus tutor for anyone prepping for midterms.",
         "teach": [("Mathematics", "Calculus I"), ("Music", "Piano fundamentals")],
-        "learn": [("Languages", "Mandarin tutoring exchange")],
+        "learn": [("Languages", "Swahili tutoring exchange")],
     },
     {
-        "name": "Kwame Boateng",
-        "email": "kwame.boateng@sample.edu",
+        "name": "Eric Niyonzima",
+        "email": "eric.niyonzima@sample.edu",
         "degree": "Economics",
         "class_year": 2026,
         "bio": "Econ senior, comfortable with spreadsheets and public speaking prep for case competitions.",
@@ -84,17 +83,17 @@ USERS = [
         "learn": [("Mathematics", "Chess strategy")],
     },
     {
-        "name": "Aicha Ndiaye",
-        "email": "aicha.ndiaye@sample.edu",
+        "name": "Sarah Umutoni",
+        "email": "sarah.umutoni@sample.edu",
         "degree": "Biology",
         "class_year": 2027,
         "bio": "Bio major who tutors organic chemistry and is trying to finally learn to dance.",
         "teach": [("Chemistry", "Organic chemistry")],
-        "learn": [("Music", "Salsa dancing")],
+        "learn": [("Music", "Traditional dance")],
     },
     {
-        "name": "Marco Silva",
-        "email": "marco.silva@sample.edu",
+        "name": "Emmanuel Habimana",
+        "email": "emmanuel.habimana@sample.edu",
         "degree": "Music",
         "class_year": 2028,
         "bio": "Music student teaching guitar basics and music theory, working on my calculus in return.",
@@ -102,8 +101,8 @@ USERS = [
         "learn": [("Mathematics", "Calculus I")],
     },
     {
-        "name": "Isabelle Moreau",
-        "email": "isabelle.moreau@sample.edu",
+        "name": "Divine Ishimwe",
+        "email": "divine.ishimwe@sample.edu",
         "degree": "Business Administration",
         "class_year": 2027,
         "bio": "Business student interested in data storytelling and pitching startup ideas.",
@@ -111,8 +110,8 @@ USERS = [
         "learn": [("Data Analysis", "SQL for beginners")],
     },
     {
-        "name": "Daniel Kowalski",
-        "email": "daniel.kowalski@sample.edu",
+        "name": "Patrick Nshimiyimana",
+        "email": "patrick.nshimiyimana@sample.edu",
         "degree": "Civil Engineering",
         "class_year": 2026,
         "bio": "Engineering student who codes on the side. Can help with backend basics and Python.",
@@ -123,8 +122,6 @@ USERS = [
 
 
 def hash_password(password: str) -> str:
-    # flask_bcrypt / bcrypt both produce and read standard $2b$ hashes,
-    # so a hash generated here works fine with the auth service's checks.
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=12)).decode("utf-8")
 
 
@@ -134,11 +131,6 @@ def main():
     con.execute("PRAGMA foreign_keys = ON")
     cur = con.cursor()
 
-    # Wipe just the sample-relevant tables so this script is re-runnable
-    # without piling up duplicate rows. Real accounts you created by hand
-    # (like the original test@anu.ac.rw user) are left alone as long as
-    # their email isn't in the sample list below. Dependent rows have to
-    # go first or the foreign keys on Users block the delete.
     sample_emails = tuple(u["email"] for u in USERS)
     placeholders = ",".join("?" * len(sample_emails))
     sample_ids = [
@@ -157,8 +149,6 @@ def main():
         cur.execute(f"DELETE FROM UserSkills WHERE user_id IN ({id_placeholders})", sample_ids)
         cur.execute(f"DELETE FROM Users WHERE user_id IN ({id_placeholders})", sample_ids)
 
-    # Degrees and categories are admin curated lookup tables, insert
-    # whichever ones don't already exist rather than wiping them.
     degree_ids = {}
     for name in DEGREES:
         cur.execute("INSERT OR IGNORE INTO Degrees (degree_name) VALUES (?)", (name,))
@@ -190,7 +180,7 @@ def main():
                 u["bio"],
                 degree_ids[u["degree"]],
                 u["class_year"],
-                round(4.2 + 0.1 * (len(u["name"]) % 8), 1),  # varied but deterministic sample rating
+                round(4.2 + 0.1 * (len(u["name"]) % 8), 1),
                 6 + (len(u["name"]) % 20),
             ),
         )
