@@ -1,123 +1,124 @@
--- This file creates all the tables for the UbuntuSkills database
--- Remove old tables first, in case we run this file again
-DROP TABLE IF EXISTS Messages;
-DROP TABLE IF EXISTS Bookings;
-DROP TABLE IF EXISTS Availability;
-DROP TABLE IF EXISTS Projects;
-DROP TABLE IF EXISTS Verifications;
-DROP TABLE IF EXISTS UserSkills;
-DROP TABLE IF EXISTS Skills;
-DROP TABLE IF EXISTS Users;
+-- Ubuntu Skills database schema
+-- This file is the single source of truth for the data model.
+-- Only backend/services/database_service ever opens this database directly.
 
--- This table stores every person who signs up
+PRAGMA foreign_keys = ON;
+
+CREATE TABLE Degrees (
+    degree_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    degree_name TEXT NOT NULL UNIQUE
+);
+
 CREATE TABLE Users (
     user_id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
-    password TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
     bio TEXT,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    avatar_url TEXT,
+    degree_id INTEGER REFERENCES Degrees(degree_id),
+    class_year INTEGER,
+    verification_method TEXT NOT NULL CHECK (verification_method IN ('school_email', 'document')),
+    verification_status TEXT NOT NULL DEFAULT 'pending' CHECK (verification_status IN ('pending', 'verified', 'rejected')),
+    verification_document_path TEXT,
+    credits_average REAL NOT NULL DEFAULT 0,
+    credits_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- This table stores the list of skills people can teach or learn
-CREATE TABLE Skills (
-    skill_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    skill_name TEXT NOT NULL UNIQUE,
-    category TEXT
+CREATE TABLE SkillCategories (
+    category_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category_name TEXT NOT NULL UNIQUE
 );
 
--- This table connects a user to a skill
--- It says if the user wants to teach that skill or learn it
 CREATE TABLE UserSkills (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    skill_id INTEGER NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('teach', 'learn')),
-    FOREIGN KEY (user_id) REFERENCES Users(user_id),
-    FOREIGN KEY (skill_id) REFERENCES Skills(skill_id)
+    user_skill_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES Users(user_id),
+    category_id INTEGER NOT NULL REFERENCES SkillCategories(category_id),
+    description TEXT NOT NULL,
+    skill_type TEXT NOT NULL CHECK (skill_type IN ('teach', 'learn')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- This table checks if a user really has the skill they claim
-CREATE TABLE Verifications (
-    verification_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    skill_id INTEGER NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
-    verified_by TEXT,
-    FOREIGN KEY (user_id) REFERENCES Users(user_id),
-    FOREIGN KEY (skill_id) REFERENCES Skills(skill_id)
+CREATE TABLE Sessions (
+    session_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    teacher_id INTEGER NOT NULL REFERENCES Users(user_id),
+    learner_id INTEGER NOT NULL REFERENCES Users(user_id),
+    user_skill_id INTEGER NOT NULL REFERENCES UserSkills(user_skill_id),
+    scheduled_time TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'declined', 'cancelled', 'completed')),
+    cancelled_by INTEGER REFERENCES Users(user_id),
+    completed_by_teacher INTEGER NOT NULL DEFAULT 0,
+    completed_by_learner INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- This table stores a finished skill exchange between two people
-CREATE TABLE Projects (
-    project_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    skill_id INTEGER NOT NULL,
-    description TEXT,
-    date TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES Users(user_id),
-    FOREIGN KEY (skill_id) REFERENCES Skills(skill_id)
+CREATE TABLE Reviews (
+    review_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL UNIQUE REFERENCES Sessions(session_id),
+    reviewer_id INTEGER NOT NULL REFERENCES Users(user_id),
+    reviewee_id INTEGER NOT NULL REFERENCES Users(user_id),
+    rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT,
+    weight REAL NOT NULL DEFAULT 1.0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- This table stores when a tutor is available to teach
-CREATE TABLE Availability (
-    availability_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    available_date TEXT NOT NULL,
-    start_time TEXT NOT NULL,
-    end_time TEXT NOT NULL,
-    is_booked INTEGER DEFAULT 0,
-    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+CREATE TABLE GroupSessions (
+    group_session_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    teacher_id INTEGER NOT NULL REFERENCES Users(user_id),
+    category_id INTEGER NOT NULL REFERENCES SkillCategories(category_id),
+    topic TEXT NOT NULL,
+    scheduled_time TEXT NOT NULL,
+    max_participants INTEGER NOT NULL DEFAULT 5,
+    status TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'completed', 'cancelled')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- This table stores when a learner books a tutor's available slot
-CREATE TABLE Bookings (
-    booking_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    availability_id INTEGER NOT NULL,
-    learner_id INTEGER NOT NULL,
-    skill_id INTEGER NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'cancelled')),
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (availability_id) REFERENCES Availability(availability_id),
-    FOREIGN KEY (learner_id) REFERENCES Users(user_id),
-    FOREIGN KEY (skill_id) REFERENCES Skills(skill_id)
+CREATE TABLE GroupSessionMembers (
+    group_session_id INTEGER NOT NULL REFERENCES GroupSessions(group_session_id),
+    user_id INTEGER NOT NULL REFERENCES Users(user_id),
+    joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (group_session_id, user_id)
 );
 
--- This table stores chat messages sent between two users
+CREATE TABLE Conversations (
+    conversation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    is_group INTEGER NOT NULL DEFAULT 0,
+    group_session_id INTEGER REFERENCES GroupSessions(group_session_id),
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE ConversationParticipants (
+    conversation_id INTEGER NOT NULL REFERENCES Conversations(conversation_id),
+    user_id INTEGER NOT NULL REFERENCES Users(user_id),
+    PRIMARY KEY (conversation_id, user_id)
+);
+
 CREATE TABLE Messages (
     message_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    sender_id INTEGER NOT NULL,
-    receiver_id INTEGER NOT NULL,
+    conversation_id INTEGER NOT NULL REFERENCES Conversations(conversation_id),
+    sender_id INTEGER NOT NULL REFERENCES Users(user_id),
     message_text TEXT NOT NULL,
-    sent_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (sender_id) REFERENCES Users(user_id),
-    FOREIGN KEY (receiver_id) REFERENCES Users(user_id)
+    sent_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- This table stores time slots a tutor makes available for booking
-DROP TABLE IF EXISTS Bookings;
-DROP TABLE IF EXISTS Availability;
-
-CREATE TABLE Availability (
-    slot_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tutor_id INTEGER NOT NULL,
-    skill_id INTEGER NOT NULL,
-    date TEXT NOT NULL,
-    start_time TEXT NOT NULL,
-    end_time TEXT NOT NULL,
-    is_booked INTEGER DEFAULT 0,
-    FOREIGN KEY (tutor_id) REFERENCES Users(user_id),
-    FOREIGN KEY (skill_id) REFERENCES Skills(skill_id)
-);
-
--- This table stores bookings made by learners
-CREATE TABLE Bookings (
-    booking_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    slot_id INTEGER NOT NULL,
-    learner_id INTEGER NOT NULL,
-    status TEXT DEFAULT 'pending'
-        CHECK (status IN ('pending', 'confirmed', 'cancelled')),
-    booked_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (slot_id) REFERENCES Availability(slot_id),
-    FOREIGN KEY (learner_id) REFERENCES Users(user_id)
+CREATE TABLE Notifications (
+    notification_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES Users(user_id),
+    notification_type TEXT NOT NULL CHECK (notification_type IN (
+        'session_requested',
+        'session_approved',
+        'session_declined',
+        'session_cancelled',
+        'session_reminder',
+        'review_prompt',
+        'group_session_announced',
+        'new_message'
+    )),
+    message TEXT NOT NULL,
+    related_session_id INTEGER REFERENCES Sessions(session_id),
+    related_group_session_id INTEGER REFERENCES GroupSessions(group_session_id),
+    is_read INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
