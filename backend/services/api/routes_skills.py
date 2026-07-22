@@ -43,3 +43,39 @@ def add_user_skill(user_id):
         return handle_db_error(e)
     except Exception as e:
         return error_response(str(e), 500)
+
+# list a user's teach and learn skills
+@skills_bp.route("/api/users/<int:user_id>/skills", methods=["GET"])
+def get_user_skills(user_id):
+    """Optional query string: ?type=teach|learn"""
+    type_filter = request.args.get("type")
+    if type_filter and type_filter not in ("teach", "learn"):
+        return error_response("'type' query param must be 'teach' or 'learn'", 400)
+
+    try:
+        skills = db_client.get_user_skills(user_id, type_filter)
+        return jsonify({"user_id": user_id, "count": len(skills), "skills": skills}), 200
+    except DBServiceError as e:
+        return handle_db_error(e)
+    except Exception as e:
+        return error_response(str(e), 500)
+
+
+# remove a skill listing from a user's profile
+@skills_bp.route("/api/users/<int:user_id>/skills/<int:user_skill_id>", methods=["DELETE"])
+def remove_user_skill(user_id, user_skill_id):
+    try:
+        removed_count = db_client.delete_user_skill(user_id, user_skill_id)
+        if removed_count == 0:
+            return error_response("No matching skill listing found for that user", 404)
+
+        return jsonify({
+            "message": "Skill removed from profile",
+            "user_id": user_id,
+            "user_skill_id": user_skill_id,
+        }), 200
+    except DBServiceError as e:
+        return handle_db_error(e)
+    except Exception as e:
+        return error_response(str(e), 500)
+
