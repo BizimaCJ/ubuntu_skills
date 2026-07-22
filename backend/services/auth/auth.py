@@ -122,7 +122,7 @@ def login():
             return jsonify({'error': 'Invalid email or password'}), 401
 
         # Compare entered password with stored hash
-        if bcrypt.check_password_hash(user['password'], password):
+        if bcrypt.check_password_hash(user['password_hash'], password):
             session['user_id'] = user['user_id']
             session['name'] = user['name']
             return jsonify({
