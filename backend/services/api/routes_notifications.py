@@ -30,3 +30,30 @@ def get_notifications(user_id):
         return handle_db_error(e)
     except Exception as e:
         return error_response(str(e), 500)
+
+
+# mark a single notification as read
+@notifications_bp.route("/api/notifications/<int:notification_id>/read", methods=["PATCH"])
+def read_notification(notification_id):
+    try:
+        db_client.mark_notification_read(notification_id)
+        return jsonify({"notification_id": notification_id, "is_read": True}), 200
+    except DBServiceError as e:
+        return handle_db_error(e)
+    except Exception as e:
+        return error_response(str(e), 500)
+
+
+# mark all as read, for the Notifications page's "mark all as read" button
+@notifications_bp.route("/api/users/<int:user_id>/notifications/read-all", methods=["PATCH"])
+def read_all_notifications(user_id):
+    try:
+        result = db_client.mark_all_notifications_read(user_id)
+        return jsonify({
+            "message": "All notifications marked as read",
+            "updated_count": result.get("updated_count", 0),
+        }), 200
+    except DBServiceError as e:
+        return handle_db_error(e)
+    except Exception as e:
+        return error_response(str(e), 500)
