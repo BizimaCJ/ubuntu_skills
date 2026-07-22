@@ -33,3 +33,19 @@ def start_conversation():
     except Exception as e:
         return error_response(str(e), 500)
 
+# list every conversation a user is part of, for the Messages page's left panel
+@messages_bp.route("/api/users/<int:user_id>/conversations", methods=["GET"])
+def get_user_conversations(user_id):
+    try:
+        conversations = db_client.list_user_conversations(user_id)
+
+        for conversation in conversations:
+            conversation["participants"] = db_client.get_conversation_participants(
+                conversation["conversation_id"]
+            )
+
+        return jsonify({"user_id": user_id, "count": len(conversations), "conversations": conversations}), 200
+    except DBServiceError as e:
+        return handle_db_error(e)
+    except Exception as e:
+        return error_response(str(e), 500)
