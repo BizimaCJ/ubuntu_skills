@@ -73,3 +73,16 @@ def create_group_session():
     except Exception as e:
         return error_response(str(e), 500)
 
+# list group sessions for the Community page
+@community_bp.route("/api/group-sessions", methods=["GET"])
+def list_group_sessions():
+    """Optional query string: ?status=scheduled|completed|cancelled, defaults to scheduled"""
+    status_filter = request.args.get("status", "scheduled")
+
+    try:
+        group_sessions = db_client.list_group_sessions(status_filter)
+        return jsonify({"count": len(group_sessions), "group_sessions": group_sessions}), 200
+    except DBServiceError as e:
+        return handle_db_error(e)
+    except Exception as e:
+        return error_response(str(e), 500)
