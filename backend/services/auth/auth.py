@@ -6,7 +6,7 @@ from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
-from config import SECRET_KEY, SCHOOL_EMAIL_DOMAIN, UPLOAD_FOLDER, ALLOWED_DOCUMENT_EXTENSIONS
+from config import SECRET_KEY, SCHOOL_EMAIL_DOMAIN, UPLOAD_FOLDER, ALLOWED_DOCUMENT_EXTENSIONS, ADMIN_KEY
 import db_client
 from db_client import DBServiceError
 
