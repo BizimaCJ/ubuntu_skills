@@ -65,4 +65,14 @@ def insert_user_skill(user_id, category_id, description, skill_type):
             "description": description,
             "skill_type": skill_type,
         },
-    )
+        )
+
+def list_all_users():
+    return _request("GET", "/users")["users"]
+
+
+def update_verification_status(user_id, status):
+    return _request(
+        "PATCH", f"/users/{user_id}/verification",
+        json={"verification_status": status},
+    )["user"]
