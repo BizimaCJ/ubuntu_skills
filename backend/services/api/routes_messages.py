@@ -33,6 +33,7 @@ def start_conversation():
     except Exception as e:
         return error_response(str(e), 500)
 
+
 # list every conversation a user is part of, for the Messages page's left panel
 @messages_bp.route("/api/users/<int:user_id>/conversations", methods=["GET"])
 def get_user_conversations(user_id):
@@ -49,6 +50,7 @@ def get_user_conversations(user_id):
         return handle_db_error(e)
     except Exception as e:
         return error_response(str(e), 500)
+
 
 # send a message into a conversation, works the same for 1:1 and group chat
 @messages_bp.route("/api/conversations/<int:conversation_id>/messages", methods=["POST"])
@@ -77,6 +79,18 @@ def send_message(conversation_id):
                 )
 
         return jsonify({"message_sent": message}), 201
+    except DBServiceError as e:
+        return handle_db_error(e)
+    except Exception as e:
+        return error_response(str(e), 500)
+
+
+# load the full history of a conversation
+@messages_bp.route("/api/conversations/<int:conversation_id>/messages", methods=["GET"])
+def get_messages(conversation_id):
+    try:
+        messages = db_client.list_messages(conversation_id)
+        return jsonify({"conversation_id": conversation_id, "count": len(messages), "messages": messages}), 200
     except DBServiceError as e:
         return handle_db_error(e)
     except Exception as e:
