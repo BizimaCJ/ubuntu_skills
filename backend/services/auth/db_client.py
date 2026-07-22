@@ -36,27 +36,33 @@ def get_user_by_email(email):
     return _request("GET", f"/users/by-email/{email}")["user"]
 
 
-def insert_user(name, email, password_hash, bio=None):
+def insert_user(name, email, password_hash, verification_method, verification_status,
+                 verification_document_path=None, bio=None):
     return _request(
         "POST", "/users",
-        json={"name": name, "email": email, "password_hash": password_hash, "bio": bio},
+        json={
+            "name": name,
+            "email": email,
+            "password_hash": password_hash,
+            "bio": bio,
+            "verification_method": verification_method,
+            "verification_status": verification_status,
+            "verification_document_path": verification_document_path,
+        },
     )["user_id"]
 
 
-def get_skill_by_name(skill_name):
-    return _request("GET", f"/skills/by-name/{skill_name}")["skill"]
+def list_skill_categories():
+    return _request("GET", "/skill-categories")["categories"]
 
 
-def insert_skill(skill_name, category="general"):
-    return _request("POST", "/skills", json={"skill_name": skill_name, "category": category})
-
-
-def insert_user_skill(user_id, skill_id, skill_type):
-    return _request("POST", "/user-skills", json={"user_id": user_id, "skill_id": skill_id, "type": skill_type})
-
-
-def get_or_create_skill_id(skill_name):
-    existing = get_skill_by_name(skill_name)
-    if existing:
-        return existing["skill_id"]
-    return insert_skill(skill_name)["skill_id"]
+def insert_user_skill(user_id, category_id, description, skill_type):
+    return _request(
+        "POST", "/user-skills",
+        json={
+            "user_id": user_id,
+            "category_id": category_id,
+            "description": description,
+            "skill_type": skill_type,
+        },
+    )
