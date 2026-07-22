@@ -149,5 +149,64 @@ def logout():
     return jsonify({'message': 'Logged out successfully'}), 200
 
 
+def _require_admin_key():
+    if request.headers.get("X-Admin-Key") != ADMIN_KEY:
+        return jsonify({'error': 'Missing or invalid admin key'}), 401
+    return None
+
+
+def _strip_sensitive(user):
+    user = dict(user)
+    user.pop("password_hash", None)
+    return user
+
+
+@app.route('/admin/verifications/pending', methods=['GET'])
+def list_pending_verifications():
+    auth_error = _require_admin_key()
+    if auth_error:
+        return auth_error
+
+    try:
+        all_users = db_client.list_all_users()
+        pending = [
+            _strip_sensitive(u) for u in all_users
+            if u.get("verification_status") == "pending"
+        ]
+        return jsonify({'count': len(pending), 'pending_verifications': pending}), 200
+
+    except DBServiceError as e:
+        return jsonify({'error': e.message}), e.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/verifications/<int:user_id>', methods=['PATCH'])
+def review_verification(user_id):
+    auth_error = _require_admin_key()
+    if auth_error:
+        return auth_error
+
+    data = request.get_json(silent=True) or {}
+    status = data.get('status')
+    if status not in ('verified', 'rejected'):
+        return jsonify({'error': "'status' must be 'verified' or 'rejected'"}), 400
+
+    try:
+        updated_user = db_client.update_verification_status(user_id, status)
+        if not updated_user:
+            return jsonify({'error': f'No user found with user_id {user_id}'}), 404
+
+        return jsonify({
+            'message': f'User {user_id} verification set to {status}',
+            'user': _strip_sensitive(updated_user),
+        }), 200
+
+    except DBServiceError as e:
+        return jsonify({'error': e.message}), e.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000, use_reloader=False)
