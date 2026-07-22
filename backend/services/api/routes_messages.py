@@ -49,3 +49,35 @@ def get_user_conversations(user_id):
         return handle_db_error(e)
     except Exception as e:
         return error_response(str(e), 500)
+
+# send a message into a conversation, works the same for 1:1 and group chat
+@messages_bp.route("/api/conversations/<int:conversation_id>/messages", methods=["POST"])
+def send_message(conversation_id):
+    """Expected JSON body: { "sender_id": 4, "message_text": "Hey, are we still on for Tuesday?" }"""
+    data = request.get_json(silent=True)
+    if not data:
+        return error_response("Request body must be JSON", 400)
+
+    sender_id = data.get("sender_id")
+    message_text = data.get("message_text")
+
+    if not sender_id or not message_text:
+        return error_response("'sender_id' and 'message_text' are required", 400)
+
+    try:
+        message = db_client.insert_message(conversation_id, sender_id, message_text)
+
+        participants = db_client.get_conversation_participants(conversation_id)
+        for participant in participants:
+            if participant["user_id"] != sender_id:
+                db_client.insert_notification(
+                    user_id=participant["user_id"],
+                    notification_type="new_message",
+                    message="You have a new message",
+                )
+
+        return jsonify({"message_sent": message}), 201
+    except DBServiceError as e:
+        return handle_db_error(e)
+    except Exception as e:
+        return error_response(str(e), 500)
