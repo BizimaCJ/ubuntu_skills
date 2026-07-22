@@ -12,3 +12,4 @@ SCHOOL_EMAIL_DOMAIN = os.environ.get("SCHOOL_EMAIL_DOMAIN", "@alustudent.com")
 
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "verification_documents")
 ALLOWED_DOCUMENT_EXTENSIONS = {"pdf", "png", "jpg", "jpeg"}
+ADMIN_KEY = os.environ.get("ADMIN_KEY", "dev-admin-key-change-me")
