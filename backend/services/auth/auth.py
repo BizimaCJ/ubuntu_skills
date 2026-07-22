@@ -1,7 +1,12 @@
+import os
+import uuid
+
 from flask import Flask, request, jsonify, session
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
-from config import SECRET_KEY
+from werkzeug.utils import secure_filename
+
+from config import SECRET_KEY, SCHOOL_EMAIL_DOMAIN, UPLOAD_FOLDER, ALLOWED_DOCUMENT_EXTENSIONS
 import db_client
 from db_client import DBServiceError
 
@@ -10,50 +15,92 @@ CORS(app)
 app.secret_key = SECRET_KEY
 bcrypt = Bcrypt(app)
 
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+
+def _is_school_email(email):
+    return email.lower().endswith(SCHOOL_EMAIL_DOMAIN.lower())
+
+
+def _allowed_document(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_DOCUMENT_EXTENSIONS
+
+
+def _save_verification_document(file_storage):
+    if not file_storage or file_storage.filename == "":
+        raise ValueError("A verification document is required for non-school-email signups")
+
+    original_name = secure_filename(file_storage.filename)
+    if not _allowed_document(original_name):
+        raise ValueError(
+            f"Unsupported file type. Allowed: {', '.join(sorted(ALLOWED_DOCUMENT_EXTENSIONS))}"
+        )
+
+    ext = original_name.rsplit(".", 1)[1].lower()
+    stored_name = f"{uuid.uuid4().hex}.{ext}"
+    stored_path = os.path.join(UPLOAD_FOLDER, stored_name)
+    file_storage.save(stored_path)
+    return stored_name
+
 
 # ─ REGISTER ROUTE ─
 @app.route('/register', methods=['POST'])
 def register():
-    data = request.get_json()
+    name = request.form.get('name')
+    email = request.form.get('email')
+    password = request.form.get('password')
 
-    name = data.get('name')
-    email = data.get('email')
-    password = data.get('password')
+    teach_category_id = request.form.get('teach_category_id')
+    teach_description = request.form.get('teach_description')
+    learn_category_id = request.form.get('learn_category_id')
+    learn_description = request.form.get('learn_description')
 
-    # Check all fields are provided
     if not name or not email or not password:
-        return jsonify({'error': 'All fields are required'}), 400
+        return jsonify({'error': 'Name, email, and password are required'}), 400
 
     try:
-        # Check if email already exists
         existing_user = db_client.get_user_by_email(email)
         if existing_user:
             return jsonify({'error': 'Email already registered'}), 409
 
-        # Hash the password before saving
+        if _is_school_email(email):
+            verification_method = 'school_email'
+            verification_status = 'verified'
+            verification_document_path = None
+        else:
+            verification_method = 'document'
+            verification_status = 'pending'
+            try:
+                verification_document_path = _save_verification_document(
+                    request.files.get('document')
+                )
+            except ValueError as e:
+                return jsonify({'error': str(e)}), 400
+
         password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
 
-        # Save new user to database
-        user_id = db_client.insert_user(name, email, password_hash)
+        user_id = db_client.insert_user(
+            name, email, password_hash,
+            verification_method=verification_method,
+            verification_status=verification_status,
+            verification_document_path=verification_document_path,
+        )
 
-        teach_skill = data.get("teach_skill")
-        learn_skill = data.get("learn_skill")
+        if teach_category_id and teach_description:
+            db_client.insert_user_skill(user_id, int(teach_category_id), teach_description, "teach")
 
-        if teach_skill:
-            skill_id = db_client.get_or_create_skill_id(teach_skill)
-            db_client.insert_user_skill(user_id, skill_id, "teach")
+        if learn_category_id and learn_description:
+            db_client.insert_user_skill(user_id, int(learn_category_id), learn_description, "learn")
 
-        if learn_skill:
-            skill_id = db_client.get_or_create_skill_id(learn_skill)
-            db_client.insert_user_skill(user_id, skill_id, "learn")
-
-        return jsonify({'message': 'User registered successfully'}), 201
+        return jsonify({
+            'message': 'User registered successfully',
+            'verification_status': verification_status,
+        }), 201
 
     except DBServiceError as e:
         return jsonify({'error': e.message}), e.status_code
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
 
 # ─ LOGIN ROUTE ─
 @app.route('/login', methods=['POST'])
