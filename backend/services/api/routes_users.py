@@ -24,6 +24,7 @@ def get_degrees():
     except Exception as e:
         return error_response(str(e), 500)
 
+
 # skill categories dropdown endpoint, admin curated list
 @users_bp.route("/api/skill-categories", methods=["GET"])
 def get_skill_categories():
@@ -101,4 +102,14 @@ def search_users():
     except Exception as e:
         return error_response(str(e), 500)
 
-    
+
+# a user's received reviews, shown on their profile
+@users_bp.route("/api/users/<int:user_id>/reviews", methods=["GET"])
+def get_user_reviews(user_id):
+    try:
+        reviews = db_client.get_user_reviews(user_id)
+        return jsonify({"user_id": user_id, "count": len(reviews), "reviews": reviews}), 200
+    except DBServiceError as e:
+        return handle_db_error(e)
+    except Exception as e:
+        return error_response(str(e), 500)
