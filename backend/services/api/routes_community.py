@@ -86,3 +86,48 @@ def list_group_sessions():
         return handle_db_error(e)
     except Exception as e:
         return error_response(str(e), 500)
+
+# join a group session, and automatically join its group chat too
+@community_bp.route("/api/group-sessions/<int:group_session_id>/join", methods=["POST"])
+def join_group_session(group_session_id):
+    """Expected JSON body: { "user_id": 6 }"""
+    data = request.get_json(silent=True)
+    if not data:
+        return error_response("Request body must be JSON", 400)
+
+    user_id = data.get("user_id")
+    if not user_id:
+        return error_response("'user_id' is required", 400)
+
+    try:
+        group_session = db_client.get_group_session(group_session_id)
+        if not group_session:
+            return error_response(f"No group session found with group_session_id {group_session_id}", 404)
+
+        if group_session["status"] != "scheduled":
+            return error_response("This group session is no longer open to join", 409)
+
+        current_members = db_client.list_group_members(group_session_id)
+        if len(current_members) >= group_session["max_participants"]:
+            return error_response("This group session is already full", 409)
+
+        if any(member["user_id"] == user_id for member in current_members):
+            return error_response("You have already joined this group session", 409)
+
+        db_client.insert_group_member(group_session_id, user_id)
+
+        # Find the group chat tied to this session, then add the new member to it.
+        conversations = db_client.list_user_conversations(group_session["teacher_id"])
+        matching = next(
+            (c for c in conversations if c.get("group_session_id") == group_session_id), None
+        )
+        if matching:
+            db_client.add_conversation_participant(matching["conversation_id"], user_id)
+
+        return jsonify({"message": "Joined group session", "group_session_id": group_session_id}), 200
+
+    except DBServiceError as e:
+        return handle_db_error(e)
+    except Exception as e:
+        return error_response(str(e), 500)
+
