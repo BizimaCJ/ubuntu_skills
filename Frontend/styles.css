@@ -32,6 +32,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -100,6 +101,7 @@ p {
   text-decoration: none;
   font-weight: 700;
 }
+
 .form-message {
   width: 100%;
   padding: 10px 20px;
@@ -121,6 +123,7 @@ p {
   border: 2px solid var(--green);
   color: var(--green-dark);
 }
+
 .nav-links a:hover,
 .nav-links a.active {
   background: var(--panel);
@@ -128,13 +131,8 @@ p {
   box-shadow: 0 10px 25px rgba(25, 32, 29, 0.08);
 }
 
-.nav-icon {
-  display: grid;
-  width: 24px;
-  height: 24px;
-  place-items: center;
-  border-radius: 6px;
-  background: #dfe9de;
+#logout-link {
+  cursor: pointer;
 }
 
 .match-panel {
@@ -159,8 +157,7 @@ p {
   object-fit: cover;
 }
 
-.match-panel p,
-.message-box p {
+.match-panel p {
   margin: 0;
 }
 
@@ -225,12 +222,37 @@ button {
   white-space: nowrap;
 }
 
+button:hover:not(:disabled),
+.top-action:hover {
+  filter: brightness(1.08);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Secondary link injected after a successful registration */
+.form-panel > .top-action {
+  justify-self: start;
+  min-height: auto;
+  padding: 4px 0;
+  background: transparent;
+  color: var(--green-dark);
+  text-decoration: underline;
+  font-weight: 700;
+}
+
 .view {
   padding: clamp(20px, 4vw, 56px);
 }
+
 .auth-layout,
-.split-layout,
-.portfolio-layout {
+.split-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
   gap: clamp(22px, 4vw, 48px);
@@ -238,7 +260,6 @@ button {
 }
 
 .auth-copy,
-.portfolio-intro,
 .info-band,
 .profile-hero {
   padding: clamp(22px, 4vw, 38px);
@@ -253,15 +274,13 @@ button {
   border-radius: 8px;
 }
 
-.photo-strip img,
-.project-card img {
+.photo-strip img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
 .auth-copy p,
-.portfolio-intro p,
 .profile-hero p {
   max-width: 58ch;
   font-size: 1.02rem;
@@ -291,6 +310,7 @@ label {
 }
 
 input,
+select,
 textarea {
   width: 100%;
   border: 1px solid var(--line);
@@ -300,9 +320,16 @@ textarea {
   outline: none;
 }
 
-input {
+input,
+select {
   min-height: 46px;
   padding: 0 14px;
+}
+
+input[type="file"] {
+  min-height: auto;
+  padding: 10px 14px;
+  font-weight: 600;
 }
 
 textarea {
@@ -312,6 +339,7 @@ textarea {
 }
 
 input:focus,
+select:focus,
 textarea:focus {
   border-color: var(--green);
   box-shadow: 0 0 0 4px rgba(39, 111, 82, 0.12);
@@ -319,10 +347,12 @@ textarea:focus {
 
 .form-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
 }
+
 .check-label {
   display: flex;
   align-items: center;
@@ -382,15 +412,17 @@ textarea:focus {
   object-fit: cover;
 }
 
-.tag-row,
-.skill-list {
+.profile-email {
+  margin: 2px 0 12px;
+}
+
+.tag-row {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-.tag-row span,
-.skill-list span {
+.tag-row span {
   padding: 8px 10px;
   border-radius: 8px;
   background: white;
@@ -399,77 +431,13 @@ textarea:focus {
   font-weight: 800;
 }
 
-.profile-section,
-.conversation-panel {
+.profile-section {
   display: grid;
   gap: 16px;
   padding: 24px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
-  button{
-    width: 3cm;
-  }
-}
-
-.skill-list.learn span {
-  color: #793c25;
-  background: #fff1dc;
-}
-
-.conversation-panel {
-  grid-column: 1 / -1;
-}
-
-.partner {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.partner img {
-  width: 58px;
-  height: 58px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.partner p {
-  margin: 4px 0 0;
-}
-
-.message-box {
-  display: grid;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 8px;
-  background: #f4f7f1;
-}
-
-.project-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-}
-
-.project-card {
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
-}
-
-.project-card img {
-  aspect-ratio: 16 / 10;
-  display: block;
-}
-
-.project-card div {
-  padding: 18px;
-}
-
-.project-card p {
-  line-height: 1.55;
 }
 
 /* ---------- Dashboard ---------- */
@@ -517,6 +485,10 @@ textarea:focus {
 .stat-value {
   font-size: 2.2rem;
   color: var(--green-dark);
+}
+
+#stat-rating {
+  font-size: 1.4rem;
 }
 
 .dashboard-columns {
@@ -569,7 +541,7 @@ textarea:focus {
   font-weight: 600;
 }
 
-/* ---------- Skills catalog ---------- */
+/* ---------- Sessions ---------- */
 
 .skills-layout {
   display: grid;
@@ -582,15 +554,20 @@ textarea:focus {
   background: #eef5f2;
 }
 
-.skills-search {
-  margin-top: 16px;
-  max-width: 420px;
+#request-session-form {
+  max-width: 680px;
+}
+
+#sessions-container {
+  display: grid;
+  gap: 20px;
 }
 
 .skills-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 16px;
+  align-items: start;
 }
 
 .skill-card {
@@ -602,6 +579,12 @@ textarea:focus {
   border-radius: 8px;
   background: var(--panel);
   box-shadow: var(--shadow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.skill-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 24px 60px rgba(25, 32, 29, 0.14);
 }
 
 .skill-category {
@@ -616,34 +599,47 @@ textarea:focus {
   text-transform: uppercase;
 }
 
-.tutors-btn {
-  justify-self: start;
-  min-height: 36px;
-  padding: 0 14px;
+/* Session action buttons — color-coded by what they do. Buttons are
+   rendered by app.js with a data-action attribute, so they're targeted
+   directly rather than via an extra wrapper class. */
+
+.skill-card button[data-action] {
+  min-height: 40px;
+  font-size: 0.88rem;
+}
+
+.skill-card button[data-action="approve"] {
+  background: var(--green);
+}
+
+.skill-card button[data-action="decline"],
+.skill-card button[data-action="cancel"] {
+  background: var(--coral);
+}
+
+.skill-card button[data-action="complete"] {
+  background: var(--blue);
+}
+
+/* Inline review form on a completed session card */
+
+form[data-review-session-id] {
+  align-items: flex-end;
+  padding: 14px;
+  border-radius: 8px;
+  background: #f4f7f1;
+}
+
+form[data-review-session-id] label {
+  flex: 1 1 140px;
+  margin: 0;
   font-size: 0.85rem;
 }
 
-.tutors-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.tutors-list.hidden {
-  display: none;
-}
-
-.tutor-pill {
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: #fff1dc;
-  color: #793c25;
-  font-size: 0.8rem;
-  font-weight: 800;
-}
-
-#logout-link {
-  cursor: pointer;
+form[data-review-session-id] button {
+  flex: 1 1 100%;
+  min-height: 40px;
+  font-size: 0.9rem;
 }
 
 @media (max-width: 980px) {
@@ -676,9 +672,7 @@ textarea:focus {
   }
 
   .auth-layout,
-  .split-layout,
-  .portfolio-layout,
-  .project-grid {
+  .split-layout {
     grid-template-columns: 1fr;
   }
 }
@@ -717,7 +711,13 @@ textarea:focus {
     width: 104px;
     height: 104px;
   }
- .photo-strip {
+
+  .photo-strip {
     height: 190px;
+  }
+
+  form[data-review-session-id] {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
