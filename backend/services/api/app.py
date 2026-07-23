@@ -15,7 +15,7 @@ from routes_sessions import sessions_bp
 OPTIONAL_BLUEPRINTS = [
     ("routes_users", "users_bp"),
     ("routes_skills", "skills_bp"),
-    ("routes_group_sessions", "group_sessions_bp"),
+    ("routes_community", "community_bp"),
     ("routes_messages", "messages_bp"),
     ("routes_notifications", "notifications_bp"),
 ]

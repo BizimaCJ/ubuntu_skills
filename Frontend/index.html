@@ -19,9 +19,8 @@
 
         <nav class="nav-links">
           <a href="#/dashboard" data-route="dashboard" data-auth="user">Dashboard</a>
-          <a href="#/skills" data-route="skills">Skills</a>
+          <a href="#/sessions" data-route="sessions" data-auth="user">Sessions</a>
           <a href="#/profile" data-route="profile" data-auth="user">Profile</a>
-          <a href="#/portfolio" data-route="portfolio" data-auth="user">Portfolio</a>
           <a href="#/login" data-route="login" data-auth="guest">Login</a>
           <a href="#/register" data-route="register" data-auth="guest">Register</a>
           <a href="#/login" id="logout-link" data-auth="user">Logout</a>
@@ -33,7 +32,7 @@
             <img src="https://i.pravatar.cc/80?img=32" alt="" />
             <img src="https://i.pravatar.cc/80?img=47" alt="" />
           </div>
-          <p>3 suggested partners are ready to review.</p>
+          <p>Track session requests, approvals, and reviews from one place.</p>
         </section>
       </aside>
 
@@ -58,7 +57,7 @@
             <img src="https://picsum.photos/seed/ubuntuskills-login/900/500" alt="" />
           </div>
           <h2>Exchange skills with people who want to grow with you.</h2>
-          <p>Sign in to manage your teaching skills, learning goals, matches, and in-site conversations.</p>
+          <p>Sign in to request sessions, respond to session requests, and leave reviews once a session is complete.</p>
         </section>
 
         <form class="form-panel" id="login-form">
@@ -110,17 +109,25 @@
               <input name="confirm_password" type="password" placeholder="••••••••" autocomplete="new-password" required />
             </label>
             <label>
-              Skill you can teach
-              <input name="teach_skill" type="text" placeholder="Web design, Arabic, Excel..." />
+              Teach category ID
+              <input name="teach_category_id" type="number" min="1" placeholder="e.g. 3" />
             </label>
             <label>
-              Skill you want to learn
-              <input name="learn_skill" type="text" placeholder="React, public speaking..." />
+              What you'll teach
+              <input name="teach_description" type="text" placeholder="Intro to web design" />
+            </label>
+            <label>
+              Learn category ID
+              <input name="learn_category_id" type="number" min="1" placeholder="e.g. 7" />
+            </label>
+            <label>
+              What you want to learn
+              <input name="learn_description" type="text" placeholder="Advanced JavaScript" />
             </label>
           </div>
           <label>
-            Short bio
-            <textarea name="bio" placeholder="Share your background, availability, and preferred learning style."></textarea>
+            Verification document (only required if your email isn't a school address)
+            <input name="document" type="file" accept=".pdf,.png,.jpg,.jpeg" />
           </label>
           <button type="button" id="register-btn">Register</button>
           <div class="form-message error" id="registerMessage"></div>
@@ -130,8 +137,8 @@
           <h3>Matching flow</h3>
           <ol>
             <li>Create your profile.</li>
-            <li>Add teach and learn skills.</li>
-            <li>Review automatic matches.</li>
+            <li>Get verified via school email or an uploaded document.</li>
+            <li>Request and approve sessions from the Sessions page.</li>
           </ol>
         </aside>
       </div>
@@ -143,7 +150,7 @@
           <div>
             <p class="eyebrow">Welcome back</p>
             <h2 id="dashboard-name">there</h2>
-            <p>Here's a snapshot of your teaching, learning, and exchange activity.</p>
+            <p>Here's a snapshot of your session activity and reputation.</p>
           </div>
         </section>
 
@@ -151,27 +158,27 @@
 
         <section class="stats-grid">
           <article class="stat-card">
-            <span class="stat-label">Skills teaching</span>
-            <strong class="stat-value" id="stat-teach">–</strong>
+            <span class="stat-label">Pending sessions</span>
+            <strong class="stat-value" id="stat-pending">–</strong>
           </article>
           <article class="stat-card">
-            <span class="stat-label">Skills learning</span>
-            <strong class="stat-value" id="stat-learn">–</strong>
+            <span class="stat-label">Upcoming sessions</span>
+            <strong class="stat-value" id="stat-upcoming">–</strong>
           </article>
           <article class="stat-card">
-            <span class="stat-label">Completed projects</span>
-            <strong class="stat-value" id="stat-projects">–</strong>
+            <span class="stat-label">Completed sessions</span>
+            <strong class="stat-value" id="stat-completed">–</strong>
           </article>
           <article class="stat-card">
-            <span class="stat-label">Verifications submitted</span>
-            <strong class="stat-value" id="stat-verifications">–</strong>
+            <span class="stat-label">Average rating</span>
+            <strong class="stat-value" id="stat-rating">–</strong>
           </article>
         </section>
 
         <section class="dashboard-columns">
           <div class="profile-section">
-            <h3>Recent exchanges</h3>
-            <ul class="activity-list" id="dashboard-recent-projects">
+            <h3>Recent sessions</h3>
+            <ul class="activity-list" id="dashboard-recent-sessions">
               <li class="empty">Loading...</li>
             </ul>
           </div>
@@ -179,29 +186,42 @@
           <div class="profile-section">
             <h3>Quick links</h3>
             <div class="quick-links">
-              <a class="quick-link" href="#/skills">Browse the skill catalog</a>
-              <a class="quick-link" href="#/profile">Update your profile</a>
-              <a class="quick-link" href="#/portfolio">Manage your portfolio</a>
+              <a class="quick-link" href="#/sessions">Manage your sessions</a>
+              <a class="quick-link" href="#/profile">View your reviews</a>
             </div>
           </div>
         </section>
       </div>
     </template>
 
-    <template id="skills-template">
+    <template id="sessions-template">
       <div class="skills-layout">
         <section class="skills-intro">
-          <p class="eyebrow">Skill catalog</p>
-          <h2>Find something to learn, or offer something to teach.</h2>
-          <p>Search the full Ubuntu Skills catalog and see who's available to tutor each skill.</p>
-          <input type="search" id="skills-search" class="skills-search" placeholder="Search skills or categories..." />
+          <p class="eyebrow">Sessions</p>
+          <h2>Request, respond to, and complete skill exchange sessions.</h2>
+          <p>Enter the listing ID a tutor shared with you to request a session with them.</p>
         </section>
 
-        <div class="form-message error" id="skills-error"></div>
+        <form class="form-panel" id="request-session-form">
+          <div class="field-grid">
+            <label>
+              Listing ID (user_skill_id)
+              <input name="user_skill_id" type="number" min="1" placeholder="e.g. 12" required />
+            </label>
+            <label>
+              Scheduled time
+              <input name="scheduled_time" type="datetime-local" required />
+            </label>
+          </div>
+          <button type="submit">Request session</button>
+          <div class="form-message error" id="request-session-message"></div>
+        </form>
 
-        <section class="skills-grid" id="skills-grid">
-          <p class="empty">Loading skills...</p>
-        </section>
+        <div class="form-message error" id="sessions-error"></div>
+
+        <div id="sessions-container">
+          <p class="empty">Loading sessions...</p>
+        </div>
       </div>
     </template>
 
@@ -210,80 +230,20 @@
         <section class="profile-hero">
           <img class="avatar" src="https://i.pravatar.cc/240?img=5" alt="Profile portrait" />
           <div>
-            <p class="eyebrow">Active learner and mentor</p>
+            <p class="eyebrow">Ubuntu Skills member</p>
             <h2></h2>
-            <p>Front-end designer teaching UI fundamentals and learning advanced JavaScript through weekly peer sessions.</p>
+            <p class="profile-email"></p>
             <div class="tag-row">
-              <span>Teaches UI Design</span>
-              <span>Learns JavaScript</span>
-              <span>Kigali</span>
+              <span id="profile-rating-summary">Loading rating...</span>
             </div>
           </div>
         </section>
 
         <section class="profile-section">
-          <h3>Skills I Can Teach</h3>
-          <div class="skill-list">
-            <span class="empty">No teaching skills yet.</span>
-          </div>
-          <button>Edit</button>
-        </section>
-
-        <section class="profile-section">
-          <h3>Skills I Want To Learn</h3>
-          <div class="skill-list learn">
-            <span class="empty">No learning skills yet.</span>
-          </div>
-          <button>Edit</button>
-        </section>
-
-        <section class="conversation-panel">
-          <h3>Matched Partner</h3>
-          <div class="partner">
-            <img src="https://i.pravatar.cc/120?img=33" alt="Matched partner portrait" />
-            <div>
-              <strong>Omar Khaled</strong>
-              <p>Can teach JavaScript. Wants help with portfolio design.</p>
-            </div>
-          </div>
-          <div class="message-box">
-            <p><strong>Omar:</strong> I can review React components this weekend.</p>
-            <input type="text" placeholder="Write a message..." />
-          </div>
-        </section>
-      </div>
-    </template>
-
-    <template id="portfolio-template">
-      <div class="portfolio-layout">
-        <section class="portfolio-intro">
-          <p class="eyebrow">Public portfolio</p>
-          <h2>Show what you can teach.</h2>
-          <p>Use this page to highlight examples, completed exchanges, certificates, and learning goals that help partners understand your strengths.</p>
-        </section>
-
-        <section class="project-grid">
-          <article class="project-card">
-            <img src="https://picsum.photos/seed/ubuntuskills-1/600/400" alt="Laptop showing a design project" />
-            <div>
-              <h3>Landing Page Redesign</h3>
-              <p>Guided a peer through layout, hierarchy, and responsive CSS for a student organization website.</p>
-            </div>
-          </article>
-          <article class="project-card">
-            <img src="https://picsum.photos/seed/ubuntuskills-2/600/400" alt="Online learning workspace" />
-            <div>
-              <h3>HTML & CSS Workshop</h3>
-              <p>Prepared a two-session mini course with exercises, references, and portfolio-ready tasks.</p>
-            </div>
-          </article>
-          <article class="project-card">
-            <img src="https://picsum.photos/seed/ubuntuskills-3/600/400" alt="People discussing work around a table" />
-            <div>
-              <h3>Peer Review Sessions</h3>
-              <p>Completed five portfolio feedback sessions with matched learners inside Ubuntu Skills.</p>
-            </div>
-          </article>
+          <h3>Reviews you've received</h3>
+          <ul class="activity-list" id="profile-reviews-list">
+            <li class="empty">Loading...</li>
+          </ul>
         </section>
       </div>
     </template>
