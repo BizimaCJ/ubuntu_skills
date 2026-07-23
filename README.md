@@ -4,41 +4,40 @@ UbuntuSkills is a peer-to-peer skill exchange platform where users can teach and
 
 ---
 
-## Project Structure
+# Project Structure
 
-
+```text
 .
 ├── backend/
-│ ├── services/
-│ │ ├── api/
-│ │ │ ├── api.py          # HTTP routes, validation, status codes
-│ │ │ ├── db_client.py     # calls database_service over HTTP - no sqlite3 here
-│ │ │ └── config.py
-│ │ │
-│ │ ├── auth/
-│ │ │ ├── auth.py          # register/login/logout routes
-│ │ │ ├── db_client.py     # calls database_service over HTTP - no sqlite3 here
-│ │ │ └── config.py
-│ │ │
-│ │ └── database_service/
-│ │   ├── db_service.py    # the ONLY service that opens the .db file / runs SQL
-│ │   └── config.py
-│ │
-│ └── database/
-│   ├── schema.sql
-│   ├── sample_data.sql
-│   └── ubuntuskills.db
+│   ├── services/
+│   │   ├── api/
+│   │   │   ├── api.py              # HTTP routes, validation, status codes
+│   │   │   ├── db_client.py        # Calls database_service over HTTP (no sqlite3 here)
+│   │   │   └── config.py
+│   │   │
+│   │   ├── auth/
+│   │   │   ├── auth.py             # Register, login, and logout routes
+│   │   │   ├── db_client.py        # Calls database_service over HTTP (no sqlite3 here)
+│   │   │   └── config.py
+│   │   │
+│   │   └── database_service/
+│   │       ├── db_service.py       # Only service that accesses the SQLite database
+│   │       └── config.py
+│   │
+│   └── database/
+│       ├── schema.sql
+│       ├── sample_data.sql
+│       └── ubuntuskills.db
 │
 ├── frontend/
-│ ├── index.html
-│ ├── app.js
-│ └── styles.css
+│   ├── index.html
+│   ├── app.js
+│   └── styles.css
 │
 ├── venv/
 ├── README.md
-
-
----
+└── requirements.txt
+```
 
 ## Architecture
 
