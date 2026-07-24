@@ -1,253 +1,279 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ubuntu Skills</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <div class="app-shell">
-      <aside class="sidebar" aria-label="Main navigation">
-        <a class="brand" href="#/login" aria-label="Ubuntu Skills home">
-          <span class="brand-mark">US</span>
-          <span>
-            <strong>Ubuntu Skills</strong>
-            <small>Peer skill exchange</small>
-          </span>
-        </a>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ubuntu · Learn from each other</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
 
-        <nav class="nav-links">
-          <a href="#/dashboard" data-route="dashboard" data-auth="user">Dashboard</a>
-          <a href="#/sessions" data-route="sessions" data-auth="user">Sessions</a>
-          <a href="#/profile" data-route="profile" data-auth="user">Profile</a>
-          <a href="#/login" data-route="login" data-auth="guest">Login</a>
-          <a href="#/register" data-route="register" data-auth="guest">Register</a>
-          <a href="#/login" id="logout-link" data-auth="user">Logout</a>
-        </nav>
+<!-- ============ LOGO (reused everywhere) ============ -->
+<template id="logo-tpl">
+  <svg viewBox="0 0 60 60" class="mark-svg" aria-hidden="true">
+    <path d="M30 8 C 44 8 51 19 51 30 C 51 42 42 52 29 51 C 17 50 9 41 9 29 C 9 18 17 8 30 8 Z"
+          fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+    <circle cx="47" cy="20" r="3.6" fill="currentColor"/>
+    <circle cx="11" cy="33" r="3.2" fill="currentColor"/>
+    <circle cx="30" cy="53" r="3" fill="currentColor"/>
+    <circle cx="38" cy="9" r="2.4" fill="currentColor"/>
+  </svg>
+</template>
 
-        <section class="match-panel" aria-label="Current match status">
-          <div class="mini-avatars" aria-hidden="true">
-            <img src="https://i.pravatar.cc/80?img=12" alt="" />
-            <img src="https://i.pravatar.cc/80?img=32" alt="" />
-            <img src="https://i.pravatar.cc/80?img=47" alt="" />
-          </div>
-          <p>Track session requests, approvals, and reviews from one place.</p>
-        </section>
-      </aside>
+<!-- ============ AUTH SCREEN ============ -->
+<main id="auth-screen">
+  <div class="auth-card">
+    <div class="brand-row">
+      <span class="mark mark-lg" id="auth-logo"></span>
+      <span class="brand-name">Ubuntu</span>
+    </div>
+    <p class="tagline">I am, because we teach each other.</p>
 
-      <main class="page">
-        <header class="topbar">
-          <div>
-            <p class="eyebrow">Community learning dashboard</p>
-            <h1 id="page-title">Ubuntu Skills</h1>
-          </div>
-          <a class="top-action" href="#/dashboard" data-auth="user">View Dashboard</a>
-          <a class="top-action" href="#/login" data-auth="guest">Sign In</a>
-        </header>
-
-        <section id="view" class="view" aria-live="polite"></section>
-      </main>
+    <div class="auth-tabs" role="tablist">
+      <button class="auth-tab active" data-tab="login" role="tab">Log in</button>
+      <button class="auth-tab" data-tab="signup" role="tab">Sign up</button>
     </div>
 
-    <template id="login-template">
-      <div class="auth-layout">
-        <section class="auth-copy">
-          <div class="photo-strip" aria-hidden="true">
-            <img src="https://picsum.photos/seed/ubuntuskills-login/900/500" alt="" />
-          </div>
-          <h2>Exchange skills with people who want to grow with you.</h2>
-          <p>Sign in to request sessions, respond to session requests, and leave reviews once a session is complete.</p>
-        </section>
+    <!-- LOGIN FORM -->
+    <form class="auth-form active" id="login-form" data-panel="login">
+      <label for="login-email">Student email</label>
+      <input type="email" id="login-email" placeholder="you@university.edu" required>
 
-        <form class="form-panel" id="login-form">
-          <label>
-            Email
-            <input type="email" name="email" placeholder="you@example.com" autocomplete="email" required />
-          </label>
-          <label>
-            Password
-            <input required name="password" type="password" placeholder="••••••••" autocomplete="current-password" />
-          </label>
-          <div class="form-row">
-            <label class="check-label">
-              <input type="checkbox" />
-              Remember me
-            </label>
-            <a href="#/register">Create account</a>
-          </div>
-          <button type="submit">Login</button>
-          <div class="form-message error" id="loginError"></div>
-        </form>
+      <label for="login-password">Password</label>
+      <input type="password" id="login-password" placeholder="Enter your password" required>
+
+      <a href="#" class="forgot">Forgot password?</a>
+      <button type="submit" class="btn btn-primary btn-block">Log in</button>
+    </form>
+
+    <!-- SIGNUP FORM -->
+    <form class="auth-form" id="signup-form" data-panel="signup">
+      <label for="signup-name">Full name</label>
+      <input type="text" id="signup-name" placeholder="Amara Diallo" required>
+
+      <label>How should we verify you're a student?</label>
+      <div class="verify-toggle">
+        <button type="button" class="verify-opt active" data-verify="email">
+          <i data-icon="mail"></i> Student email
+        </button>
+        <button type="button" class="verify-opt" data-verify="document">
+          <i data-icon="file"></i> Upload document
+        </button>
       </div>
-    </template>
 
-    <template id="register-template">
-      <div class="split-layout">
-        <section class="form-panel wide">
-          <div class="section-heading">
-            <p class="eyebrow">Create account</p>
-            <h2>Tell Ubuntu Skills what you can teach and what you want to learn.</h2>
-          </div>
-          <div class="field-grid">
-            <label>
-              Full name
-              <input name="name" type="text" placeholder="Amina Hassan" autocomplete="name" required />
-            </label>
-            <label>
-              Email
-              <input name="email" type="email" placeholder="amina@example.com" autocomplete="email" required />
-            </label>
-
-            <label>
-              Password
-              <input name="password" type="password" placeholder="••••••••" autocomplete="new-password" required />
-            </label>
-
-            <label>
-              Confirm password
-              <input name="confirm_password" type="password" placeholder="••••••••" autocomplete="new-password" required />
-            </label>
-            <label>
-              Teach category ID
-              <input name="teach_category_id" type="number" min="1" placeholder="e.g. 3" />
-            </label>
-            <label>
-              What you'll teach
-              <input name="teach_description" type="text" placeholder="Intro to web design" />
-            </label>
-            <label>
-              Learn category ID
-              <input name="learn_category_id" type="number" min="1" placeholder="e.g. 7" />
-            </label>
-            <label>
-              What you want to learn
-              <input name="learn_description" type="text" placeholder="Advanced JavaScript" />
-            </label>
-          </div>
-          <label>
-            Verification document (only required if your email isn't a school address)
-            <input name="document" type="file" accept=".pdf,.png,.jpg,.jpeg" />
-          </label>
-          <button type="button" id="register-btn">Register</button>
-          <div class="form-message error" id="registerMessage"></div>
-        </section>
-
-        <aside class="info-band">
-          <h3>Matching flow</h3>
-          <ol>
-            <li>Create your profile.</li>
-            <li>Get verified via school email or an uploaded document.</li>
-            <li>Request and approve sessions from the Sessions page.</li>
-          </ol>
-        </aside>
+      <div class="verify-panel active" data-verify-panel="email">
+        <label for="signup-email">Student email</label>
+        <input type="email" id="signup-email" placeholder="you@university.edu">
+        <p class="hint">We'll send a confirmation link to this address — instant, automatic, no waiting on a reviewer.</p>
       </div>
-    </template>
 
-    <template id="dashboard-template">
-      <div class="dashboard-layout">
-        <section class="dashboard-hero">
-          <div>
-            <p class="eyebrow">Welcome back</p>
-            <h2 id="dashboard-name">there</h2>
-            <p>Here's a snapshot of your session activity and reputation.</p>
-          </div>
-        </section>
-
-        <div class="form-message error" id="dashboard-error"></div>
-
-        <section class="stats-grid">
-          <article class="stat-card">
-            <span class="stat-label">Pending sessions</span>
-            <strong class="stat-value" id="stat-pending">–</strong>
-          </article>
-          <article class="stat-card">
-            <span class="stat-label">Upcoming sessions</span>
-            <strong class="stat-value" id="stat-upcoming">–</strong>
-          </article>
-          <article class="stat-card">
-            <span class="stat-label">Completed sessions</span>
-            <strong class="stat-value" id="stat-completed">–</strong>
-          </article>
-          <article class="stat-card">
-            <span class="stat-label">Average rating</span>
-            <strong class="stat-value" id="stat-rating">–</strong>
-          </article>
-        </section>
-
-        <section class="dashboard-columns">
-          <div class="profile-section">
-            <h3>Recent sessions</h3>
-            <ul class="activity-list" id="dashboard-recent-sessions">
-              <li class="empty">Loading...</li>
-            </ul>
-          </div>
-
-          <div class="profile-section">
-            <h3>Quick links</h3>
-            <div class="quick-links">
-              <a class="quick-link" href="#/sessions">Manage your sessions</a>
-              <a class="quick-link" href="#/profile">View your reviews</a>
-            </div>
-          </div>
-        </section>
+      <div class="verify-panel" data-verify-panel="document">
+        <label for="signup-doc">Enrollment proof (ID card, transcript, or acceptance letter)</label>
+        <div class="upload-drop" id="upload-drop">
+          <i data-icon="upload"></i>
+          <span id="upload-label">Click to upload, or drag a file here</span>
+          <input type="file" id="signup-doc" accept="image/*,.pdf" hidden>
+        </div>
+        <p class="hint">Reviewed by hand within 24–48 hours. Use this if your school doesn't issue student emails.</p>
       </div>
-    </template>
 
-    <template id="sessions-template">
-      <div class="skills-layout">
-        <section class="skills-intro">
-          <p class="eyebrow">Sessions</p>
-          <h2>Request, respond to, and complete skill exchange sessions.</h2>
-          <p>Enter the listing ID a tutor shared with you to request a session with them.</p>
-        </section>
+      <label for="signup-degree">Degree</label>
+      <select id="signup-degree"></select>
 
-        <form class="form-panel" id="request-session-form">
-          <div class="field-grid">
-            <label>
-              Listing ID (user_skill_id)
-              <input name="user_skill_id" type="number" min="1" placeholder="e.g. 12" required />
-            </label>
-            <label>
-              Scheduled time
-              <input name="scheduled_time" type="datetime-local" required />
-            </label>
+      <label for="signup-class-year">Class year</label>
+      <input type="number" id="signup-class-year" placeholder="2027" min="2020" max="2035">
+
+      <label for="signup-password">Password</label>
+      <input type="password" id="signup-password" placeholder="Create a password" required>
+
+      <button type="submit" class="btn btn-primary btn-block">Create account</button>
+    </form>
+
+    <p class="switch-note">
+      <span data-show-when="login">New here? <a href="#" data-goto="signup">Create an account</a></span>
+      <span data-show-when="signup" class="hidden">Already a member? <a href="#" data-goto="login">Log in</a></span>
+    </p>
+  </div>
+</main>
+
+<!-- ============ APP SHELL ============ -->
+<div id="app-shell" class="hidden">
+
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <span class="mark mark-sm"></span>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-btn active" data-view="profile" title="Profile"><i data-icon="user"></i><span>Profile</span></button>
+      <button class="nav-btn" data-view="search" title="Search"><i data-icon="search"></i><span>Search</span></button>
+      <button class="nav-btn" data-view="messages" title="Messages"><i data-icon="message"></i><span>Messages</span><span class="dot-badge" id="msg-badge">2</span></button>
+      <button class="nav-btn" data-view="sessions" title="Sessions"><i data-icon="calendar"></i><span>Sessions</span></button>
+      <button class="nav-btn" data-view="notifications" title="Notifications"><i data-icon="bell"></i><span>Notifications</span><span class="dot-badge" id="notif-badge">3</span></button>
+      <button class="nav-btn" data-view="community" title="Community"><i data-icon="users"></i><span>Community</span></button>
+    </nav>
+    <button class="nav-btn nav-logout" id="logout-btn" title="Log out"><i data-icon="logout"></i><span>Log out</span></button>
+  </aside>
+
+  <main class="content">
+
+    <!-- ---------- PROFILE ---------- -->
+    <section class="view active" id="view-profile">
+      <div class="profile-header card">
+        <div class="avatar-upload">
+          <div class="avatar avatar-xl" id="profile-avatar">AD</div>
+          <label class="avatar-edit" for="avatar-input"><i data-icon="camera"></i></label>
+          <input type="file" id="avatar-input" accept="image/*" hidden>
+        </div>
+        <div class="profile-header-info">
+          <h1>Amara Diallo</h1>
+          <p class="muted">Computer Science · Class of 2027</p>
+          <div class="credits-row">
+            <span class="stars" data-rating="4.6"></span>
+            <span class="credits-label">4.6 <span class="muted">Ubuntu Credits (38 reviews)</span></span>
           </div>
-          <button type="submit">Request session</button>
-          <div class="form-message error" id="request-session-message"></div>
-        </form>
+        </div>
+        <button class="btn btn-secondary" id="profile-message-btn"><i data-icon="message"></i> Message</button>
+      </div>
 
-        <div class="form-message error" id="sessions-error"></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head">
+            <h3>Skills I can teach</h3>
+          </div>
+          <div class="chip-input" data-chip-group="teach">
+            <span class="chip chip-teal">Python <button data-remove>×</button></span>
+            <span class="chip chip-teal">Guitar basics <button data-remove>×</button></span>
+            <span class="chip chip-teal">Calculus I <button data-remove>×</button></span>
+            <input type="text" placeholder="Add a skill and press Enter">
+          </div>
+        </div>
 
-        <div id="sessions-container">
-          <p class="empty">Loading sessions...</p>
+        <div class="card">
+          <div class="card-head">
+            <h3>Skills I want to learn</h3>
+          </div>
+          <div class="chip-input" data-chip-group="learn">
+            <span class="chip chip-steel">French conversation <button data-remove>×</button></span>
+            <span class="chip chip-steel">Watercolor painting <button data-remove>×</button></span>
+            <input type="text" placeholder="Add a skill and press Enter">
+          </div>
         </div>
       </div>
-    </template>
 
-    <template id="profile-template">
-      <div class="profile-grid">
-        <section class="profile-hero">
-          <img class="avatar" src="https://i.pravatar.cc/240?img=5" alt="Profile portrait" />
-          <div>
-            <p class="eyebrow">Ubuntu Skills member</p>
-            <h2></h2>
-            <p class="profile-email"></p>
-            <div class="tag-row">
-              <span id="profile-rating-summary">Loading rating...</span>
-            </div>
-          </div>
-        </section>
-
-        <section class="profile-section">
-          <h3>Reviews you've received</h3>
-          <ul class="activity-list" id="profile-reviews-list">
-            <li class="empty">Loading...</li>
-          </ul>
-        </section>
+      <div class="card">
+        <div class="card-head">
+          <h3>Reviews</h3>
+          <span class="muted">38 total</span>
+        </div>
+        <div class="reviews-list" id="reviews-list"></div>
       </div>
-    </template>
+    </section>
 
-    <script src="app.js"></script>
-  </body>
+    <!-- ---------- SEARCH ---------- -->
+    <section class="view" id="view-search">
+      <h1 class="view-title">Find a skill, or someone to teach it to</h1>
+      <div class="search-bar">
+        <i data-icon="search"></i>
+        <input type="text" id="search-input" placeholder="Search skills or people…">
+      </div>
+      <div class="filter-row" id="filter-row">
+        <button class="filter-chip active" data-filter="all">All</button>
+        <button class="filter-chip" data-filter="teach">Can teach me</button>
+        <button class="filter-chip" data-filter="learn">Wants to learn</button>
+        <button class="filter-chip" data-filter="top">Top rated</button>
+      </div>
+      <div class="results-grid" id="results-grid"></div>
+    </section>
+
+    <!-- ---------- MESSAGES ---------- -->
+    <section class="view" id="view-messages">
+      <div class="messages-layout">
+        <div class="conv-list">
+          <div class="conv-list-head">
+            <h3>Messages</h3>
+            <button class="btn-icon" id="new-group-btn" title="New group chat"><i data-icon="user-plus"></i></button>
+          </div>
+          <div id="conv-items"></div>
+        </div>
+        <div class="chat-window">
+          <div class="chat-header" id="chat-header"></div>
+          <div class="chat-body" id="chat-body"></div>
+          <form class="chat-input-row" id="chat-form">
+            <input type="text" id="chat-input" placeholder="Write a message…">
+            <button type="submit" class="btn btn-primary btn-small">Send</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- SESSIONS ---------- -->
+    <section class="view" id="view-sessions">
+      <h1 class="view-title">Your sessions</h1>
+      <div class="filter-row">
+        <button class="filter-chip active" data-session-tab="upcoming">Upcoming</button>
+        <button class="filter-chip" data-session-tab="pending">Pending approval</button>
+        <button class="filter-chip" data-session-tab="completed">Completed</button>
+        <button class="filter-chip" data-session-tab="declined">Declined</button>
+      </div>
+      <div class="sessions-list" id="sessions-list"></div>
+    </section>
+
+    <!-- ---------- NOTIFICATIONS ---------- -->
+    <section class="view" id="view-notifications">
+      <div class="view-title-row">
+        <h1 class="view-title">Notifications</h1>
+        <button class="btn-link" id="mark-all-read">Mark all as read</button>
+      </div>
+      <div class="notif-list" id="notif-list"></div>
+    </section>
+
+    <!-- ---------- COMMUNITY ---------- -->
+    <section class="view" id="view-community">
+      <div class="view-title-row">
+        <h1 class="view-title">Group sessions</h1>
+        <button class="btn btn-primary" id="create-group-session-btn"><i data-icon="plus"></i> Host a group session</button>
+      </div>
+      <p class="muted community-sub">Open teaching sessions hosted by students — up to 5 people per group.</p>
+      <div class="community-grid" id="community-grid"></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============ MODALS ============ -->
+<div class="modal-overlay" id="review-modal">
+  <div class="modal">
+    <button class="modal-close" data-close-modal>×</button>
+    <h2>Leave a review</h2>
+    <p class="muted" id="review-modal-sub">How was your session with Kwame?</p>
+    <div class="star-picker" id="star-picker">
+      <button data-star="1">★</button><button data-star="2">★</button><button data-star="3">★</button><button data-star="4">★</button><button data-star="5">★</button>
+    </div>
+    <textarea id="review-text" placeholder="Share how the session went…" rows="4"></textarea>
+    <button class="btn btn-primary btn-block" id="submit-review-btn">Submit review &amp; award credits</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="group-session-modal">
+  <div class="modal">
+    <button class="modal-close" data-close-modal>×</button>
+    <h2>Host a group session</h2>
+    <label for="gs-topic">Topic</label>
+    <input type="text" id="gs-topic" placeholder="e.g. Intro to Watercolor">
+    <label for="gs-category">Category</label>
+    <select id="gs-category"></select>
+    <label for="gs-time">Time slot</label>
+    <input type="datetime-local" id="gs-time">
+    <p class="hint">Max 5 people. You'll be added as the teacher automatically, and a group chat is created when someone joins.</p>
+    <button class="btn btn-primary btn-block" id="publish-group-session">Publish session</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="script.js"></script>
+</body>
 </html>
