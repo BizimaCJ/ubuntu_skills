@@ -1,0 +1,7 @@
+flask
+flask-cors
+flask-bcrypt
+bcrypt
+requests
+gunicorn
+psycopg2-binary

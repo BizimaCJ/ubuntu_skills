@@ -14,17 +14,28 @@ parametrized SQL, return simple JSON out.
 """
 
 from flask import Flask, request, jsonify
-import sqlite3
-from config import DATABASE, PORT
+import psycopg2
+import psycopg2.extras
+from config import DATABASE_URL, PORT
 
 app = Flask(__name__)
 
 
 def get_db():
-    conn = sqlite3.connect(DATABASE, timeout=10, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
+    conn = psycopg2.connect(DATABASE_URL)
     return conn
+
+
+def execute(conn, query, params=()):
+    """
+    Thin shim so the rest of this file can keep calling execute(conn, sql, params)
+    the same way it used to call execute(conn, sql, params) under sqlite3.
+    Translates '?' placeholders to psycopg2's '%s' and returns a dict-cursor
+    so row['field'] access below keeps working unchanged.
+    """
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute(query.replace("?", "%s"), params)
+    return cur
 
 
 def row_or_none(row):
@@ -65,12 +76,13 @@ def insert_user():
 
     try:
         conn = get_db()
-        cur = conn.execute(
+        cur = execute(conn, 
             """
             INSERT INTO Users
                 (name, email, password_hash, bio, avatar_url, degree_id, class_year,
                  verification_method, verification_status, verification_document_path)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            RETURNING user_id
             """,
             (
                 name, email, password_hash,
@@ -80,12 +92,17 @@ def insert_user():
             ),
         )
         conn.commit()
-        user_id = cur.lastrowid
+        user_id = cur.fetchone()["user_id"]
         conn.close()
         return jsonify({"user_id": user_id}), 201
-    except sqlite3.IntegrityError as e:
+    except psycopg2.IntegrityError as e:
+        if 'conn' in locals():
+            conn.rollback()
+            conn.close()
         return error_response(str(e), 409)
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -93,10 +110,12 @@ def insert_user():
 def get_user_by_email(email):
     try:
         conn = get_db()
-        user = conn.execute("SELECT * FROM Users WHERE email = ?", (email,)).fetchone()
+        user = execute(conn, "SELECT * FROM Users WHERE email = ?", (email,)).fetchone()
         conn.close()
         return jsonify({"user": row_or_none(user)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -104,10 +123,12 @@ def get_user_by_email(email):
 def get_user(user_id):
     try:
         conn = get_db()
-        user = conn.execute("SELECT * FROM Users WHERE user_id = ?", (user_id,)).fetchone()
+        user = execute(conn, "SELECT * FROM Users WHERE user_id = ?", (user_id,)).fetchone()
         conn.close()
         return jsonify({"user": row_or_none(user)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -128,15 +149,17 @@ def update_user(user_id):
     try:
         conn = get_db()
         set_clause = ", ".join(f"{field} = ?" for field in updates)
-        conn.execute(
+        execute(conn, 
             f"UPDATE Users SET {set_clause} WHERE user_id = ?",
             (*updates.values(), user_id),
         )
         conn.commit()
-        updated = conn.execute("SELECT * FROM Users WHERE user_id = ?", (user_id,)).fetchone()
+        updated = execute(conn, "SELECT * FROM Users WHERE user_id = ?", (user_id,)).fetchone()
         conn.close()
         return jsonify({"user": row_or_none(updated)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -150,15 +173,17 @@ def update_verification(user_id):
 
     try:
         conn = get_db()
-        conn.execute(
+        execute(conn, 
             "UPDATE Users SET verification_status = ? WHERE user_id = ?",
             (status, user_id),
         )
         conn.commit()
-        updated = conn.execute("SELECT * FROM Users WHERE user_id = ?", (user_id,)).fetchone()
+        updated = execute(conn, "SELECT * FROM Users WHERE user_id = ?", (user_id,)).fetchone()
         conn.close()
         return jsonify({"user": row_or_none(updated)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -178,7 +203,7 @@ def update_credits(user_id):
 
     try:
         conn = get_db()
-        conn.execute(
+        execute(conn, 
             "UPDATE Users SET credits_average = ?, credits_count = ? WHERE user_id = ?",
             (credits_average, credits_count, user_id),
         )
@@ -186,6 +211,8 @@ def update_credits(user_id):
         conn.close()
         return jsonify({"user_id": user_id, "credits_average": credits_average, "credits_count": credits_count}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -200,14 +227,16 @@ def search_users():
     try:
         conn = get_db()
         if q:
-            rows = conn.execute(
+            rows = execute(conn, 
                 "SELECT * FROM Users WHERE name LIKE ? ORDER BY name", (f"%{q}%",)
             ).fetchall()
         else:
-            rows = conn.execute("SELECT * FROM Users ORDER BY name").fetchall()
+            rows = execute(conn, "SELECT * FROM Users ORDER BY name").fetchall()
         conn.close()
         return jsonify({"users": rows_to_list(rows)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -217,10 +246,12 @@ def search_users():
 def list_degrees():
     try:
         conn = get_db()
-        rows = conn.execute("SELECT * FROM Degrees ORDER BY degree_name").fetchall()
+        rows = execute(conn, "SELECT * FROM Degrees ORDER BY degree_name").fetchall()
         conn.close()
         return jsonify({"degrees": rows_to_list(rows)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -230,10 +261,12 @@ def list_degrees():
 def list_categories():
     try:
         conn = get_db()
-        rows = conn.execute("SELECT * FROM SkillCategories ORDER BY category_name").fetchall()
+        rows = execute(conn, "SELECT * FROM SkillCategories ORDER BY category_name").fetchall()
         conn.close()
         return jsonify({"categories": rows_to_list(rows)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -245,7 +278,7 @@ def category_learners(category_id):
     """
     try:
         conn = get_db()
-        rows = conn.execute(
+        rows = execute(conn, 
             """
             SELECT DISTINCT Users.user_id
             FROM UserSkills
@@ -257,6 +290,8 @@ def category_learners(category_id):
         conn.close()
         return jsonify({"user_ids": [row["user_id"] for row in rows]}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -277,18 +312,20 @@ def insert_user_skill():
 
     try:
         conn = get_db()
-        cur = conn.execute(
-            "INSERT INTO UserSkills (user_id, category_id, description, skill_type) VALUES (?, ?, ?, ?)",
+        cur = execute(conn, 
+            "INSERT INTO UserSkills (user_id, category_id, description, skill_type) VALUES (?, ?, ?, ?) RETURNING user_skill_id",
             (user_id, category_id, description, skill_type),
         )
         conn.commit()
-        new_id = cur.lastrowid
+        new_id = cur.fetchone()["user_skill_id"]
         conn.close()
         return jsonify({
             "user_skill_id": new_id, "user_id": user_id, "category_id": category_id,
             "description": description, "skill_type": skill_type,
         }), 201
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -300,12 +337,14 @@ def get_user_skill(user_skill_id):
     """
     try:
         conn = get_db()
-        row = conn.execute(
+        row = execute(conn, 
             "SELECT * FROM UserSkills WHERE user_skill_id = ?", (user_skill_id,)
         ).fetchone()
         conn.close()
         return jsonify({"user_skill": row_or_none(row)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -324,10 +363,12 @@ def get_user_skills(user_id):
         if type_filter:
             query += " AND UserSkills.skill_type = ?"
             params.append(type_filter)
-        rows = conn.execute(query, params).fetchall()
+        rows = execute(conn, query, params).fetchall()
         conn.close()
         return jsonify({"skills": rows_to_list(rows)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -335,7 +376,7 @@ def get_user_skills(user_id):
 def delete_user_skill(user_id, user_skill_id):
     try:
         conn = get_db()
-        cur = conn.execute(
+        cur = execute(conn, 
             "DELETE FROM UserSkills WHERE user_id = ? AND user_skill_id = ?",
             (user_id, user_skill_id),
         )
@@ -344,6 +385,8 @@ def delete_user_skill(user_id, user_skill_id):
         conn.close()
         return jsonify({"removed_count": deleted_count}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -383,10 +426,12 @@ def search_user_skills():
             query += " AND Users.class_year = ?"
             params.append(class_year)
 
-        rows = conn.execute(query, params).fetchall()
+        rows = execute(conn, query, params).fetchall()
         conn.close()
         return jsonify({"results": rows_to_list(rows)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -407,18 +452,21 @@ def insert_session():
 
     try:
         conn = get_db()
-        cur = conn.execute(
+        cur = execute(conn, 
             """
             INSERT INTO Sessions (teacher_id, learner_id, user_skill_id, scheduled_time, status)
             VALUES (?, ?, ?, ?, 'pending')
+            RETURNING session_id
             """,
             (teacher_id, learner_id, user_skill_id, scheduled_time),
         )
         conn.commit()
-        session_id = cur.lastrowid
+        session_id = cur.fetchone()["session_id"]
         conn.close()
         return jsonify({"session_id": session_id}), 201
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -426,10 +474,12 @@ def insert_session():
 def get_session(session_id):
     try:
         conn = get_db()
-        row = conn.execute("SELECT * FROM Sessions WHERE session_id = ?", (session_id,)).fetchone()
+        row = execute(conn, "SELECT * FROM Sessions WHERE session_id = ?", (session_id,)).fetchone()
         conn.close()
         return jsonify({"session": row_or_none(row)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -449,15 +499,17 @@ def update_session(session_id):
 
     try:
         conn = get_db()
-        conn.execute(
+        execute(conn, 
             "UPDATE Sessions SET status = ?, cancelled_by = ? WHERE session_id = ?",
             (status, cancelled_by, session_id),
         )
         conn.commit()
-        updated = conn.execute("SELECT * FROM Sessions WHERE session_id = ?", (session_id,)).fetchone()
+        updated = execute(conn, "SELECT * FROM Sessions WHERE session_id = ?", (session_id,)).fetchone()
         conn.close()
         return jsonify({"session": row_or_none(updated)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -477,17 +529,19 @@ def mark_session_completed(session_id):
 
     try:
         conn = get_db()
-        conn.execute(f"UPDATE Sessions SET {column} = 1 WHERE session_id = ?", (session_id,))
-        row = conn.execute("SELECT * FROM Sessions WHERE session_id = ?", (session_id,)).fetchone()
+        execute(conn, f"UPDATE Sessions SET {column} = 1 WHERE session_id = ?", (session_id,))
+        row = execute(conn, "SELECT * FROM Sessions WHERE session_id = ?", (session_id,)).fetchone()
 
         if row["completed_by_teacher"] and row["completed_by_learner"] and row["status"] != "completed":
-            conn.execute("UPDATE Sessions SET status = 'completed' WHERE session_id = ?", (session_id,))
+            execute(conn, "UPDATE Sessions SET status = 'completed' WHERE session_id = ?", (session_id,))
 
         conn.commit()
-        updated = conn.execute("SELECT * FROM Sessions WHERE session_id = ?", (session_id,)).fetchone()
+        updated = execute(conn, "SELECT * FROM Sessions WHERE session_id = ?", (session_id,)).fetchone()
         conn.close()
         return jsonify({"session": row_or_none(updated)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -515,10 +569,12 @@ def get_user_sessions(user_id):
 
         query += " ORDER BY scheduled_time DESC"
 
-        rows = conn.execute(query, params).fetchall()
+        rows = execute(conn, query, params).fetchall()
         conn.close()
         return jsonify({"sessions": rows_to_list(rows)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -540,20 +596,26 @@ def insert_review():
 
     try:
         conn = get_db()
-        cur = conn.execute(
+        cur = execute(conn, 
             """
             INSERT INTO Reviews (session_id, reviewer_id, reviewee_id, rating, comment, weight)
             VALUES (?, ?, ?, ?, ?, ?)
+            RETURNING review_id
             """,
             (session_id, reviewer_id, reviewee_id, rating, data.get("comment"), weight),
         )
         conn.commit()
-        review_id = cur.lastrowid
+        review_id = cur.fetchone()["review_id"]
         conn.close()
         return jsonify({"review_id": review_id}), 201
-    except sqlite3.IntegrityError as e:
+    except psycopg2.IntegrityError as e:
+        if 'conn' in locals():
+            conn.rollback()
+            conn.close()
         return error_response(str(e), 409)
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -562,7 +624,7 @@ def get_user_reviews(user_id):
     """Reviews received by this user, newest first, for the profile page."""
     try:
         conn = get_db()
-        rows = conn.execute(
+        rows = execute(conn, 
             """
             SELECT Reviews.*, Users.name AS reviewer_name, Users.avatar_url AS reviewer_avatar_url
             FROM Reviews
@@ -575,6 +637,8 @@ def get_user_reviews(user_id):
         conn.close()
         return jsonify({"reviews": rows_to_list(rows)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -593,13 +657,15 @@ def count_reviews_between():
 
     try:
         conn = get_db()
-        count = conn.execute(
+        count = execute(conn, 
             "SELECT COUNT(*) AS c FROM Reviews WHERE reviewer_id = ? AND reviewee_id = ?",
             (reviewer_id, reviewee_id),
         ).fetchone()["c"]
         conn.close()
         return jsonify({"count": count}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -621,18 +687,21 @@ def insert_group_session():
 
     try:
         conn = get_db()
-        cur = conn.execute(
+        cur = execute(conn, 
             """
             INSERT INTO GroupSessions (teacher_id, category_id, topic, scheduled_time, max_participants, status)
             VALUES (?, ?, ?, ?, ?, 'scheduled')
+            RETURNING group_session_id
             """,
             (teacher_id, category_id, topic, scheduled_time, max_participants),
         )
         conn.commit()
-        group_session_id = cur.lastrowid
+        group_session_id = cur.fetchone()["group_session_id"]
         conn.close()
         return jsonify({"group_session_id": group_session_id}), 201
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -641,7 +710,7 @@ def list_group_sessions():
     status_filter = request.args.get("status", "scheduled")
     try:
         conn = get_db()
-        rows = conn.execute(
+        rows = execute(conn, 
             """
             SELECT GroupSessions.*, SkillCategories.category_name, Users.name AS teacher_name,
                    (SELECT COUNT(*) FROM GroupSessionMembers WHERE GroupSessionMembers.group_session_id = GroupSessions.group_session_id) AS current_members
@@ -656,6 +725,8 @@ def list_group_sessions():
         conn.close()
         return jsonify({"group_sessions": rows_to_list(rows)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -663,12 +734,14 @@ def list_group_sessions():
 def get_group_session(group_session_id):
     try:
         conn = get_db()
-        row = conn.execute(
+        row = execute(conn, 
             "SELECT * FROM GroupSessions WHERE group_session_id = ?", (group_session_id,)
         ).fetchone()
         conn.close()
         return jsonify({"group_session": row_or_none(row)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -681,7 +754,7 @@ def update_group_session_status(group_session_id):
 
     try:
         conn = get_db()
-        conn.execute(
+        execute(conn, 
             "UPDATE GroupSessions SET status = ? WHERE group_session_id = ?",
             (status, group_session_id),
         )
@@ -689,6 +762,8 @@ def update_group_session_status(group_session_id):
         conn.close()
         return jsonify({"group_session_id": group_session_id, "status": status}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -701,16 +776,21 @@ def insert_group_member(group_session_id):
 
     try:
         conn = get_db()
-        conn.execute(
+        execute(conn, 
             "INSERT INTO GroupSessionMembers (group_session_id, user_id) VALUES (?, ?)",
             (group_session_id, user_id),
         )
         conn.commit()
         conn.close()
         return jsonify({"group_session_id": group_session_id, "user_id": user_id}), 201
-    except sqlite3.IntegrityError as e:
+    except psycopg2.IntegrityError as e:
+        if 'conn' in locals():
+            conn.rollback()
+            conn.close()
         return error_response(str(e), 409)
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -718,7 +798,7 @@ def insert_group_member(group_session_id):
 def list_group_members(group_session_id):
     try:
         conn = get_db()
-        rows = conn.execute(
+        rows = execute(conn, 
             """
             SELECT Users.user_id, Users.name, Users.avatar_url
             FROM GroupSessionMembers
@@ -730,6 +810,8 @@ def list_group_members(group_session_id):
         conn.close()
         return jsonify({"members": rows_to_list(rows)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -738,11 +820,13 @@ def clear_group_members(group_session_id):
     """Called once a group session is marked completed, to empty it out."""
     try:
         conn = get_db()
-        conn.execute("DELETE FROM GroupSessionMembers WHERE group_session_id = ?", (group_session_id,))
+        execute(conn, "DELETE FROM GroupSessionMembers WHERE group_session_id = ?", (group_session_id,))
         conn.commit()
         conn.close()
         return jsonify({"group_session_id": group_session_id, "cleared": True}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -765,13 +849,13 @@ def insert_conversation():
 
     try:
         conn = get_db()
-        cur = conn.execute(
-            "INSERT INTO Conversations (is_group, group_session_id) VALUES (?, ?)",
+        cur = execute(conn, 
+            "INSERT INTO Conversations (is_group, group_session_id) VALUES (?, ?) RETURNING conversation_id",
             (is_group, group_session_id),
         )
-        conversation_id = cur.lastrowid
+        conversation_id = cur.fetchone()["conversation_id"]
         for user_id in participant_ids:
-            conn.execute(
+            execute(conn, 
                 "INSERT INTO ConversationParticipants (conversation_id, user_id) VALUES (?, ?)",
                 (conversation_id, user_id),
             )
@@ -779,6 +863,8 @@ def insert_conversation():
         conn.close()
         return jsonify({"conversation_id": conversation_id}), 201
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -792,16 +878,21 @@ def add_conversation_participant(conversation_id):
 
     try:
         conn = get_db()
-        conn.execute(
+        execute(conn, 
             "INSERT INTO ConversationParticipants (conversation_id, user_id) VALUES (?, ?)",
             (conversation_id, user_id),
         )
         conn.commit()
         conn.close()
         return jsonify({"conversation_id": conversation_id, "user_id": user_id}), 201
-    except sqlite3.IntegrityError as e:
+    except psycopg2.IntegrityError as e:
+        if 'conn' in locals():
+            conn.rollback()
+            conn.close()
         return error_response(str(e), 409)
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -809,7 +900,7 @@ def add_conversation_participant(conversation_id):
 def list_user_conversations(user_id):
     try:
         conn = get_db()
-        rows = conn.execute(
+        rows = execute(conn, 
             """
             SELECT Conversations.*
             FROM Conversations
@@ -822,6 +913,8 @@ def list_user_conversations(user_id):
         conn.close()
         return jsonify({"conversations": rows_to_list(rows)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -829,7 +922,7 @@ def list_user_conversations(user_id):
 def get_conversation_participants(conversation_id):
     try:
         conn = get_db()
-        rows = conn.execute(
+        rows = execute(conn, 
             """
             SELECT Users.user_id, Users.name, Users.avatar_url
             FROM ConversationParticipants
@@ -841,6 +934,8 @@ def get_conversation_participants(conversation_id):
         conn.close()
         return jsonify({"participants": rows_to_list(rows)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -852,13 +947,15 @@ def delete_conversation(conversation_id):
     """
     try:
         conn = get_db()
-        conn.execute("DELETE FROM Messages WHERE conversation_id = ?", (conversation_id,))
-        conn.execute("DELETE FROM ConversationParticipants WHERE conversation_id = ?", (conversation_id,))
-        conn.execute("DELETE FROM Conversations WHERE conversation_id = ?", (conversation_id,))
+        execute(conn, "DELETE FROM Messages WHERE conversation_id = ?", (conversation_id,))
+        execute(conn, "DELETE FROM ConversationParticipants WHERE conversation_id = ?", (conversation_id,))
+        execute(conn, "DELETE FROM Conversations WHERE conversation_id = ?", (conversation_id,))
         conn.commit()
         conn.close()
         return jsonify({"conversation_id": conversation_id, "deleted": True}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -873,16 +970,18 @@ def insert_message(conversation_id):
 
     try:
         conn = get_db()
-        cur = conn.execute(
-            "INSERT INTO Messages (conversation_id, sender_id, message_text) VALUES (?, ?, ?)",
+        cur = execute(conn, 
+            "INSERT INTO Messages (conversation_id, sender_id, message_text) VALUES (?, ?, ?) RETURNING message_id",
             (conversation_id, sender_id, message_text),
         )
         conn.commit()
-        message_id = cur.lastrowid
-        row = conn.execute("SELECT * FROM Messages WHERE message_id = ?", (message_id,)).fetchone()
+        message_id = cur.fetchone()["message_id"]
+        row = execute(conn, "SELECT * FROM Messages WHERE message_id = ?", (message_id,)).fetchone()
         conn.close()
         return jsonify({"message": row_or_none(row)}), 201
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -890,13 +989,15 @@ def insert_message(conversation_id):
 def list_messages(conversation_id):
     try:
         conn = get_db()
-        rows = conn.execute(
+        rows = execute(conn, 
             "SELECT * FROM Messages WHERE conversation_id = ? ORDER BY sent_at ASC",
             (conversation_id,),
         ).fetchall()
         conn.close()
         return jsonify({"messages": rows_to_list(rows)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -914,11 +1015,12 @@ def insert_notification():
 
     try:
         conn = get_db()
-        cur = conn.execute(
+        cur = execute(conn, 
             """
             INSERT INTO Notifications
                 (user_id, notification_type, message, related_session_id, related_group_session_id)
             VALUES (?, ?, ?, ?, ?)
+            RETURNING notification_id
             """,
             (
                 user_id, notification_type, message,
@@ -926,10 +1028,12 @@ def insert_notification():
             ),
         )
         conn.commit()
-        notification_id = cur.lastrowid
+        notification_id = cur.fetchone()["notification_id"]
         conn.close()
         return jsonify({"notification_id": notification_id}), 201
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -943,10 +1047,12 @@ def list_notifications(user_id):
         if unread_only:
             query += " AND is_read = 0"
         query += " ORDER BY created_at DESC"
-        rows = conn.execute(query, params).fetchall()
+        rows = execute(conn, query, params).fetchall()
         conn.close()
         return jsonify({"notifications": rows_to_list(rows)}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -954,11 +1060,13 @@ def list_notifications(user_id):
 def mark_notification_read(notification_id):
     try:
         conn = get_db()
-        conn.execute("UPDATE Notifications SET is_read = 1 WHERE notification_id = ?", (notification_id,))
+        execute(conn, "UPDATE Notifications SET is_read = 1 WHERE notification_id = ?", (notification_id,))
         conn.commit()
         conn.close()
         return jsonify({"notification_id": notification_id, "is_read": True}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -966,12 +1074,14 @@ def mark_notification_read(notification_id):
 def mark_all_notifications_read(user_id):
     try:
         conn = get_db()
-        cur = conn.execute("UPDATE Notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0", (user_id,))
+        cur = execute(conn, "UPDATE Notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0", (user_id,))
         conn.commit()
         updated_count = cur.rowcount
         conn.close()
         return jsonify({"user_id": user_id, "updated_count": updated_count}), 200
     except Exception as e:
+        if 'conn' in locals():
+            conn.close()
         return error_response(str(e))
 
 
@@ -981,4 +1091,4 @@ def health():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=PORT, use_reloader=False) 
+    app.run(debug=True, host="0.0.0.0", port=PORT, use_reloader=False) 

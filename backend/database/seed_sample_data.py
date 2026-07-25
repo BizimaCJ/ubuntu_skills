@@ -1,9 +1,10 @@
 """
-Seeds the Ubuntu Skills database with sample data for local development
-and demos.
+Seeds the Ubuntu Skills Postgres database with sample data for local
+development and demos.
 
-Run it from anywhere with:
-    python3 backend/database/seed_sample_data.py
+Reads the connection string from the DATABASE_URL environment variable.
+Run it with:
+    DATABASE_URL="postgres://..." python3 backend/database/seed_sample_data.py
 
 It is safe to re-run: it clears the tables it seeds first, so you always
 end up with the same clean sample set instead of duplicates on top of
@@ -13,11 +14,11 @@ Every sample account uses the password: pw123
 """
 
 import os
-import sqlite3
+import psycopg2
+import psycopg2.extras
 import bcrypt
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE = os.path.join(BASE_DIR, "ubuntuskills.db")
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 SAMPLE_PASSWORD = "pw123"
 
@@ -126,40 +127,39 @@ def hash_password(password: str) -> str:
 
 
 def main():
-    con = sqlite3.connect(DATABASE)
-    con.row_factory = sqlite3.Row
-    con.execute("PRAGMA foreign_keys = ON")
-    cur = con.cursor()
+    if not DATABASE_URL:
+        raise SystemExit("DATABASE_URL environment variable is not set")
+
+    con = psycopg2.connect(DATABASE_URL)
+    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     sample_emails = tuple(u["email"] for u in USERS)
-    placeholders = ",".join("?" * len(sample_emails))
-    sample_ids = [
-        row["user_id"]
-        for row in cur.execute(f"SELECT user_id FROM Users WHERE email IN ({placeholders})", sample_emails)
-    ]
+    cur.execute("SELECT user_id FROM Users WHERE email IN %s", (sample_emails,))
+    sample_ids = [row["user_id"] for row in cur.fetchall()]
+
     if sample_ids:
-        id_placeholders = ",".join("?" * len(sample_ids))
-        cur.execute(f"DELETE FROM Reviews WHERE reviewer_id IN ({id_placeholders}) OR reviewee_id IN ({id_placeholders})", sample_ids * 2)
-        cur.execute(f"DELETE FROM Messages WHERE sender_id IN ({id_placeholders})", sample_ids)
-        cur.execute(f"DELETE FROM ConversationParticipants WHERE user_id IN ({id_placeholders})", sample_ids)
-        cur.execute(f"DELETE FROM GroupSessionMembers WHERE user_id IN ({id_placeholders})", sample_ids)
-        cur.execute(f"DELETE FROM Notifications WHERE user_id IN ({id_placeholders})", sample_ids)
-        cur.execute(f"DELETE FROM Sessions WHERE teacher_id IN ({id_placeholders}) OR learner_id IN ({id_placeholders})", sample_ids * 2)
-        cur.execute(f"DELETE FROM GroupSessions WHERE teacher_id IN ({id_placeholders})", sample_ids)
-        cur.execute(f"DELETE FROM UserSkills WHERE user_id IN ({id_placeholders})", sample_ids)
-        cur.execute(f"DELETE FROM Users WHERE user_id IN ({id_placeholders})", sample_ids)
+        ids = tuple(sample_ids)
+        cur.execute("DELETE FROM Reviews WHERE reviewer_id IN %s OR reviewee_id IN %s", (ids, ids))
+        cur.execute("DELETE FROM Messages WHERE sender_id IN %s", (ids,))
+        cur.execute("DELETE FROM ConversationParticipants WHERE user_id IN %s", (ids,))
+        cur.execute("DELETE FROM GroupSessionMembers WHERE user_id IN %s", (ids,))
+        cur.execute("DELETE FROM Notifications WHERE user_id IN %s", (ids,))
+        cur.execute("DELETE FROM Sessions WHERE teacher_id IN %s OR learner_id IN %s", (ids, ids))
+        cur.execute("DELETE FROM GroupSessions WHERE teacher_id IN %s", (ids,))
+        cur.execute("DELETE FROM UserSkills WHERE user_id IN %s", (ids,))
+        cur.execute("DELETE FROM Users WHERE user_id IN %s", (ids,))
 
     degree_ids = {}
     for name in DEGREES:
-        cur.execute("INSERT OR IGNORE INTO Degrees (degree_name) VALUES (?)", (name,))
-        row = cur.execute("SELECT degree_id FROM Degrees WHERE degree_name = ?", (name,)).fetchone()
-        degree_ids[name] = row["degree_id"]
+        cur.execute("INSERT INTO Degrees (degree_name) VALUES (%s) ON CONFLICT (degree_name) DO NOTHING", (name,))
+        cur.execute("SELECT degree_id FROM Degrees WHERE degree_name = %s", (name,))
+        degree_ids[name] = cur.fetchone()["degree_id"]
 
     category_ids = {}
     for name in CATEGORIES:
-        cur.execute("INSERT OR IGNORE INTO SkillCategories (category_name) VALUES (?)", (name,))
-        row = cur.execute("SELECT category_id FROM SkillCategories WHERE category_name = ?", (name,)).fetchone()
-        category_ids[name] = row["category_id"]
+        cur.execute("INSERT INTO SkillCategories (category_name) VALUES (%s) ON CONFLICT (category_name) DO NOTHING", (name,))
+        cur.execute("SELECT category_id FROM SkillCategories WHERE category_name = %s", (name,))
+        category_ids[name] = cur.fetchone()["category_id"]
 
     password_hash = hash_password(SAMPLE_PASSWORD)
 
@@ -171,7 +171,8 @@ def main():
                 name, email, password_hash, bio, degree_id, class_year,
                 verification_method, verification_status,
                 credits_average, credits_count
-            ) VALUES (?, ?, ?, ?, ?, ?, 'school_email', 'verified', ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, 'school_email', 'verified', %s, %s)
+            RETURNING user_id
             """,
             (
                 u["name"],
@@ -184,17 +185,17 @@ def main():
                 6 + (len(u["name"]) % 20),
             ),
         )
-        user_id = cur.lastrowid
+        user_id = cur.fetchone()["user_id"]
         created.append((user_id, u["name"], u["email"]))
 
         for category_name, description in u["teach"]:
             cur.execute(
-                "INSERT INTO UserSkills (user_id, category_id, description, skill_type) VALUES (?, ?, ?, 'teach')",
+                "INSERT INTO UserSkills (user_id, category_id, description, skill_type) VALUES (%s, %s, %s, 'teach')",
                 (user_id, category_ids[category_name], description),
             )
         for category_name, description in u["learn"]:
             cur.execute(
-                "INSERT INTO UserSkills (user_id, category_id, description, skill_type) VALUES (?, ?, ?, 'learn')",
+                "INSERT INTO UserSkills (user_id, category_id, description, skill_type) VALUES (%s, %s, %s, 'learn')",
                 (user_id, category_ids[category_name], description),
             )
 
@@ -209,4 +210,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()
