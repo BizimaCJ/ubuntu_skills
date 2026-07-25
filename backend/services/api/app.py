@@ -23,7 +23,7 @@ OPTIONAL_BLUEPRINTS = [
 
 def create_app():
     app = Flask(__name__)
-    CORS(app, supports_credentials=True, origins=["https://bizimacj.github.io"])
+    CORS(app, supports_credentials=True, origins=["https://ubuntu-skills-frontend.onrender.com"])
 
     app.register_blueprint(sessions_bp)
 

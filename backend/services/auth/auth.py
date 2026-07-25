@@ -11,7 +11,7 @@ import db_client
 from db_client import DBServiceError
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True, origins=["https://bizimacj.github.io"])
+CORS(app, supports_credentials=True, origins=["https://ubuntu-skills-frontend.onrender.com"])
 app.secret_key = SECRET_KEY
 bcrypt = Bcrypt(app)
 
