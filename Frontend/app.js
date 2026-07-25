@@ -3,8 +3,8 @@
    The auth service (register/login/logout) and the api service
    (everything else) run as two separate Flask apps.
    ============================================================ */
-const AUTH_BASE = 'https://websitepractice-auth.onrender.com';
-const API_BASE = 'https://websitepractice-api.onrender.com';
+const AUTH_BASE = 'https://ubuntu-skills-auth.onrender.com';
+const API_BASE = 'https://ubuntu-skills-api.onrender.com';
 
 /* Small wrapper around fetch that always sends/expects JSON, always
    includes cookies (the auth service uses a session cookie), and
