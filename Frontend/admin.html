@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ubuntu Skills · Admin Verification Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* Admin-page-only styles. Reuses the same CSS variables as the main
+     app (see styles.css :root) so this doesn't need its own palette. */
+  body.admin-body{
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    background: var(--cream);
+    min-height: 100vh;
+  }
+  .admin-header{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom: 28px; flex-wrap: wrap; gap: 10px;
+  }
+  .admin-header h1{ font-size: 26px; }
+  .admin-sub{ color: var(--charcoal-soft); font-size: 14px; margin-top: 4px; }
+
+  .key-gate{
+    background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 28px; max-width: 420px; margin: 60px auto; text-align:center;
+  }
+  .key-gate input{
+    width: 100%; padding: 11px 13px; border-radius: 10px; border: 1.5px solid var(--line);
+    background: var(--white); font-family: inherit; font-size: 14px; outline: none; margin: 14px 0;
+  }
+  .key-gate input:focus{ border-color: var(--light-blue); }
+
+  button.primary{
+    background: var(--deep-teal); color: var(--white); border: none; border-radius: 10px;
+    padding: 10px 18px; font-family: inherit; font-weight: 600; font-size: 14px; cursor: pointer;
+  }
+  button.primary:hover{ background: var(--deep-teal-dark); }
+  button.ghost{
+    background: none; border: 1.5px solid var(--line); border-radius: 10px;
+    padding: 9px 16px; font-family: inherit; font-weight: 600; font-size: 13px;
+    color: var(--charcoal-soft); cursor: pointer;
+  }
+  button.ghost:hover{ border-color: var(--charcoal-soft); }
+  button:disabled{ opacity: 0.5; cursor: not-allowed; }
+
+  #error-banner{
+    display:none; background:#F8D7DA; color:#5B1E24; border-radius: 10px;
+    padding: 12px 16px; margin-bottom: 18px; font-size: 14px;
+  }
+
+  .empty-state{
+    text-align:center; padding: 60px 20px; color: var(--charcoal-soft);
+  }
+
+  .verification-card{
+    background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 20px 22px; margin-bottom: 14px;
+  }
+  .vc-top{ display:flex; justify-content:space-between; align-items:flex-start; gap: 12px; flex-wrap: wrap; }
+  .vc-name{ font-family:'Fraunces', serif; font-weight:600; font-size: 18px; }
+  .vc-email{ color: var(--charcoal-soft); font-size: 14px; margin-top: 2px; }
+  .vc-meta{ font-size: 12.5px; color: var(--charcoal-soft); margin-top: 6px; }
+  .vc-actions{ display:flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+
+  .badge{
+    display:inline-block; font-size: 12px; font-weight:700; padding: 3px 10px;
+    border-radius: 999px; background: var(--sage); color: var(--charcoal);
+  }
+
+  /* Document viewer modal */
+  .modal-backdrop{
+    display:none; position:fixed; inset:0; background: rgba(31,42,46,0.55);
+    align-items:center; justify-content:center; z-index: 50; padding: 20px;
+  }
+  .modal-backdrop.open{ display:flex; }
+  .doc-modal{
+    background: var(--white); border-radius: var(--radius); max-width: 720px; width: 100%;
+    max-height: 85vh; display:flex; flex-direction:column; overflow:hidden;
+  }
+  .doc-modal-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 14px 18px; border-bottom: 1px solid var(--line);
+  }
+  .doc-modal-body{ flex:1; overflow:auto; padding: 16px; display:flex; align-items:center; justify-content:center; background: var(--charcoal); }
+  .doc-modal-body img{ max-width:100%; max-height:70vh; border-radius: 6px; }
+  .doc-modal-body iframe{ width:100%; height:70vh; border:none; background:var(--white); }
+</style>
+</head>
+<body class="admin-body">
+
+  <div id="error-banner"></div>
+
+  <!-- Shown until a valid admin key is entered -->
+  <div class="key-gate" id="key-gate">
+    <h1 style="font-size:20px;">Admin access</h1>
+    <p class="admin-sub">Enter the admin key to review pending verifications.</p>
+    <input type="password" id="admin-key-input" placeholder="Admin key" autocomplete="off">
+    <button class="primary" id="unlock-btn" style="width:100%;">Unlock</button>
+  </div>
+
+  <!-- Shown once unlocked -->
+  <div id="admin-panel" style="display:none;">
+    <div class="admin-header">
+      <div>
+        <h1>Pending verifications</h1>
+        <div class="admin-sub" id="count-label">Loading…</div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="ghost" id="refresh-btn">Refresh</button>
+        <button class="ghost" id="lock-btn">Lock</button>
+      </div>
+    </div>
+
+    <div id="list-container"></div>
+  </div>
+
+  <!-- Document viewer -->
+  <div class="modal-backdrop" id="doc-backdrop">
+    <div class="doc-modal">
+      <div class="doc-modal-head">
+        <strong id="doc-modal-title">Document</strong>
+        <button class="ghost" id="doc-close-btn">Close</button>
+      </div>
+      <div class="doc-modal-body" id="doc-modal-body">
+        <span style="color:var(--white);">Loading…</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
