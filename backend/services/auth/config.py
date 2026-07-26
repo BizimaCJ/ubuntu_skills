@@ -15,3 +15,11 @@ ALLOWED_DOCUMENT_EXTENSIONS = {"pdf", "png", "jpg", "jpeg"}
 ADMIN_KEY = os.environ.get("ADMIN_KEY", "dev-admin-key-change-me")
 
 PORT = int(os.environ.get("PORT", 5000))
+
+# Comma-separated list of allowed origins for CORS. Defaults to just the
+# deployed frontend, so nothing is loosened unless you explicitly set this -
+# e.g. for local admin-page testing:
+#   export CORS_ORIGINS="https://ubuntu-skills-frontend.onrender.com,http://127.0.0.1:8000"
+CORS_ORIGINS = os.environ.get(
+    "CORS_ORIGINS", "https://ubuntu-skills-frontend.onrender.com"
+).split(",")
