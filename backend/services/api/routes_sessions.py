@@ -69,10 +69,12 @@ def _recalculate_rating(reviewee_id):
 @sessions_bp.route("/sessions", methods=["POST"])
 def request_session():
     """
-    A learner requests a session against a teacher's 'teach' listing.
+    A learner requests a session, either against a specific 'teach' listing
+    or as a plain session directly with a teacher (no skill attached).
 
-    Expected JSON body:
-    { "learner_id": 4, "user_skill_id": 1, "scheduled_time": "2026-08-01T15:00:00" }
+    Expected JSON body, one of:
+    { "learner_id": 4, "user_skill_id": 1, "scheduled_time": "..." }
+    { "learner_id": 4, "teacher_id": 7, "scheduled_time": "..." }
     """
     data = request.get_json(silent=True)
     if not data:
@@ -81,20 +83,34 @@ def request_session():
     learner_id, err = _require_int(data, "learner_id")
     if err:
         return err
-    user_skill_id, err = _require_int(data, "user_skill_id")
-    if err:
-        return err
     scheduled_time = data.get("scheduled_time")
     if not scheduled_time:
         return error_response("'scheduled_time' is required", 400)
 
-    user_skill = db_client.get_user_skill(user_skill_id)
-    if not user_skill:
-        return error_response(f"No listing found with user_skill_id {user_skill_id}", 404)
-    if user_skill["skill_type"] != "teach":
-        return error_response("Sessions can only be requested against a 'teach' listing", 400)
+    user_skill_id = data.get("user_skill_id")
+    teacher_id_raw = data.get("teacher_id")
 
-    teacher_id = user_skill["user_id"]
+    if user_skill_id is not None:
+        try:
+            user_skill_id = int(user_skill_id)
+        except (TypeError, ValueError):
+            return error_response("'user_skill_id' must be an integer", 400)
+
+        user_skill = db_client.get_user_skill(user_skill_id)
+        if not user_skill:
+            return error_response(f"No listing found with user_skill_id {user_skill_id}", 404)
+        if user_skill["skill_type"] != "teach":
+            return error_response("Sessions can only be requested against a 'teach' listing", 400)
+        teacher_id = user_skill["user_id"]
+    elif teacher_id_raw is not None:
+        try:
+            teacher_id = int(teacher_id_raw)
+        except (TypeError, ValueError):
+            return error_response("'teacher_id' must be an integer", 400)
+        user_skill_id = None
+    else:
+        return error_response("Either 'user_skill_id' or 'teacher_id' is required", 400)
+
     if learner_id == teacher_id:
         return error_response("You cannot request a session with yourself", 400)
 

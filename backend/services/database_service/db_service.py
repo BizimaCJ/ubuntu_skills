@@ -445,9 +445,9 @@ def insert_session():
     user_skill_id = data.get("user_skill_id")
     scheduled_time = data.get("scheduled_time")
 
-    if not all([teacher_id, learner_id, user_skill_id, scheduled_time]):
+    if not all([teacher_id, learner_id, scheduled_time]):
         return error_response(
-            "'teacher_id', 'learner_id', 'user_skill_id', and 'scheduled_time' are required", 400
+            "'teacher_id', 'learner_id', and 'scheduled_time' are required", 400
         )
 
     try:

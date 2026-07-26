@@ -474,7 +474,7 @@ function renderResults(query=''){
     const when = prompt(`When would you like to meet ${person.name}? (YYYY-MM-DDTHH:MM)`, '2026-07-25T16:00');
     if (!when) return;
     try {
-      await api('/api/sessions', { method: 'POST', body: { learner_id: currentUser.user_id, user_skill_id: person.teachSkillIds[0], scheduled_time: when } });
+      await api('/api/sessions', { method: 'POST', body: { learner_id: currentUser.user_id, teacher_id: person.user_id, scheduled_time: when } });
       toast(`Session requested with ${person.name}`);
       await loadSessions();
     } catch (err) {
@@ -664,14 +664,15 @@ document.querySelectorAll('[data-session-tab]').forEach(btn => {
 
 async function respondSession(session, status){
   try {
-    await api(`/api/sessions/${session.session_id}/respond`, { method: 'PATCH', body: { status } });
+    const action = status === 'approved' ? 'approve' : 'decline';
+    await api(`/api/sessions/${session.session_id}/${action}`, { method: 'PATCH', body: { user_id: currentUser.user_id } });
     toast(`Session ${status}`);
     await loadSessions();
   } catch (err) { toast(err.message); }
 }
 async function cancelSession(session){
   try {
-    await api(`/api/sessions/${session.session_id}/cancel`, { method: 'PATCH', body: { cancelled_by: currentUser.user_id } });
+    await api(`/api/sessions/${session.session_id}/cancel`, { method: 'PATCH', body: { user_id: currentUser.user_id } });
     toast('Session cancelled');
     await loadSessions();
   } catch (err) { toast(err.message); }
@@ -761,14 +762,18 @@ document.getElementById('mark-all-read').addEventListener('click', async () => {
 });
 document.getElementById('notif-list').addEventListener('click', async e => {
   if(e.target.matches('[data-approve]')){
-    await api(`/api/sessions/${e.target.dataset.approve}/respond`, { method: 'PATCH', body: { status: 'approved' } });
-    toast('Session approved — added to your upcoming sessions.');
-    await Promise.all([loadNotifications(), loadSessions()]);
+    try {
+      await api(`/api/sessions/${e.target.dataset.approve}/approve`, { method: 'PATCH', body: { user_id: currentUser.user_id } });
+      toast('Session approved — added to your upcoming sessions.');
+      await Promise.all([loadNotifications(), loadSessions()]);
+    } catch (err) { toast(err.message); }
   }
   if(e.target.matches('[data-decline]')){
-    await api(`/api/sessions/${e.target.dataset.decline}/respond`, { method: 'PATCH', body: { status: 'declined' } });
-    toast('Session declined.');
-    await Promise.all([loadNotifications(), loadSessions()]);
+    try {
+      await api(`/api/sessions/${e.target.dataset.decline}/decline`, { method: 'PATCH', body: { user_id: currentUser.user_id } });
+      toast('Session declined.');
+      await Promise.all([loadNotifications(), loadSessions()]);
+    } catch (err) { toast(err.message); }
   }
 });
 

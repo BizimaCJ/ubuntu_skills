@@ -42,7 +42,7 @@ CREATE TABLE Sessions (
     session_id SERIAL PRIMARY KEY,
     teacher_id INTEGER NOT NULL REFERENCES Users(user_id),
     learner_id INTEGER NOT NULL REFERENCES Users(user_id),
-    user_skill_id INTEGER NOT NULL REFERENCES UserSkills(user_skill_id),
+    user_skill_id INTEGER REFERENCES UserSkills(user_skill_id),
     scheduled_time TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'declined', 'cancelled', 'completed')),
     cancelled_by INTEGER REFERENCES Users(user_id),
