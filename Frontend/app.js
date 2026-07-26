@@ -318,26 +318,28 @@ document.querySelectorAll('.chip-input').forEach(group => {
       const description = input.value.trim();
 
       if (!categories.length) { toast('Skill categories are still loading, try again in a second'); return; }
-      // Best-effort match of the free text to an existing category name,
-      // otherwise fall back to asking which category it belongs to.
-      let category = categories.find(c => description.toLowerCase().includes(c.category_name.toLowerCase()));
-      if (!category) {
-        const listing = categories.map((c, i) => `${i + 1}. ${c.category_name}`).join('\n');
-        const pick = prompt(`Which category is "${description}" under?\n\n${listing}`, '1');
-        const idx = Number(pick) - 1;
-        category = categories[idx] || categories[0];
-      }
 
-      try {
-        await api(`/api/users/${currentUser.user_id}/skills`, {
-          method: 'POST',
-          body: { category_id: category.category_id, description, skill_type: type },
-        });
-        input.value = '';
-        await loadProfile();
-        toast('Skill added to your profile');
-      } catch (err) {
-        toast(err.message);
+      const addSkill = async (category) => {
+        try {
+          await api(`/api/users/${currentUser.user_id}/skills`, {
+            method: 'POST',
+            body: { category_id: category.category_id, description, skill_type: type },
+          });
+          input.value = '';
+          await loadProfile();
+          toast('Skill added to your profile');
+        } catch (err) {
+          toast(err.message);
+        }
+      };
+
+      // Best-effort match of the free text to an existing category name,
+      // otherwise ask which category it belongs to via the picker modal.
+      const matched = categories.find(c => description.toLowerCase().includes(c.category_name.toLowerCase()));
+      if (matched) {
+        await addSkill(matched);
+      } else {
+        openCategoryPickModal(description, addSkill);
       }
     }
   });
@@ -469,17 +471,23 @@ function renderResults(query=''){
     }
   }));
 
-  document.querySelectorAll('[data-request-idx]').forEach(btn => btn.addEventListener('click', async () => {
+  document.querySelectorAll('[data-request-idx]').forEach(btn => btn.addEventListener('click', () => {
     const person = list[Number(btn.dataset.requestIdx)];
-    const when = prompt(`When would you like to meet ${person.name}? (YYYY-MM-DDTHH:MM)`, '2026-07-25T16:00');
-    if (!when) return;
-    try {
-      await api('/api/sessions', { method: 'POST', body: { learner_id: currentUser.user_id, teacher_id: person.user_id, scheduled_time: when } });
-      toast(`Session requested with ${person.name}`);
-      await loadSessions();
-    } catch (err) {
-      toast(err.message);
-    }
+    openScheduleModal({
+      title: `Request a session with ${person.name}`,
+      sub: 'They can approve this time, or message you to propose a different one.',
+      buttonLabel: 'Send request',
+      initialValue: '',
+      onConfirm: async (when) => {
+        try {
+          await api('/api/sessions', { method: 'POST', body: { learner_id: currentUser.user_id, teacher_id: person.user_id, scheduled_time: when } });
+          toast(`Session requested with ${person.name}`);
+          await loadSessions();
+        } catch (err) {
+          toast(err.message);
+        }
+      }
+    });
   }));
 }
 document.getElementById('search-input').addEventListener('input', e => renderResults(e.target.value));
@@ -621,13 +629,14 @@ function renderSessions(){
   document.getElementById('sessions-list').innerHTML = list.map((s, i) => {
     const statusLabel = s.status.charAt(0).toUpperCase() + s.status.slice(1);
     let actions = '';
+    const rescheduleBtn = `<button class="btn-icon" data-reschedule-idx="${i}" title="Propose a different time">📅</button>`;
     if (currentSessionTab === 'upcoming') {
-      actions = `<button class="btn btn-secondary" data-cancel-idx="${i}">Cancel</button>`;
+      actions = `${rescheduleBtn}<button class="btn btn-secondary" data-cancel-idx="${i}">Cancel</button>`;
     }
     if (currentSessionTab === 'pending') {
       actions = s.isTeacher
-        ? `<button class="btn btn-primary" data-approve-idx="${i}">Approve</button><button class="btn btn-secondary" data-decline-idx="${i}">Decline</button>`
-        : `<button class="btn btn-secondary" data-cancel-idx="${i}">Withdraw</button>`;
+        ? `${rescheduleBtn}<button class="btn btn-primary" data-approve-idx="${i}">Approve</button><button class="btn btn-secondary" data-decline-idx="${i}">Decline</button>`
+        : `${rescheduleBtn}<button class="btn btn-secondary" data-cancel-idx="${i}">Withdraw</button>`;
     }
     if (currentSessionTab === 'completed') {
       const myFlag = s.isTeacher ? s.completed_by_teacher : s.completed_by_learner;
@@ -652,6 +661,22 @@ function renderSessions(){
   document.querySelectorAll('[data-cancel-idx]').forEach(btn => btn.addEventListener('click', () => cancelSession(list[Number(btn.dataset.cancelIdx)])));
   document.querySelectorAll('[data-confirm-idx]').forEach(btn => btn.addEventListener('click', () => completeSession(list[Number(btn.dataset.confirmIdx)])));
   document.querySelectorAll('[data-review-idx]').forEach(btn => btn.addEventListener('click', () => openReviewModal(list[Number(btn.dataset.reviewIdx)])));
+  document.querySelectorAll('[data-reschedule-idx]').forEach(btn => btn.addEventListener('click', () => openRescheduleModal(list[Number(btn.dataset.rescheduleIdx)])));
+}
+function openRescheduleModal(session){
+  openScheduleModal({
+    title: 'Propose a new time',
+    sub: `${sessionLabel(session)} — the other person will need to confirm.`,
+    buttonLabel: 'Propose time',
+    initialValue: (session.scheduled_time || '').slice(0, 16),
+    onConfirm: async (when) => {
+      try {
+        await api(`/api/sessions/${session.session_id}/reschedule`, { method: 'PATCH', body: { user_id: currentUser.user_id, scheduled_time: when } });
+        toast('New time proposed — waiting on their confirmation.');
+        await loadSessions();
+      } catch (err) { toast(err.message); }
+    }
+  });
 }
 document.querySelectorAll('[data-session-tab]').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -855,3 +880,43 @@ document.getElementById('publish-group-session').addEventListener('click', async
 function closeModals(){ document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active')); }
 document.querySelectorAll('[data-close-modal]').forEach(btn => btn.addEventListener('click', closeModals));
 document.querySelectorAll('.modal-overlay').forEach(overlay => overlay.addEventListener('click', e => { if(e.target === overlay) closeModals(); }));
+
+/* ============================================================
+   SCHEDULE MODAL — used for booking a session and for
+   proposing a new time on an existing one. No native browser
+   popups anywhere in this app; this is the one date/time picker.
+   ============================================================ */
+let scheduleModalAction = null;
+function openScheduleModal({ title, sub, buttonLabel, initialValue, onConfirm }){
+  document.getElementById('schedule-modal-title').textContent = title;
+  document.getElementById('schedule-modal-sub').textContent = sub || '';
+  document.getElementById('schedule-time').value = initialValue || '';
+  document.getElementById('schedule-confirm-btn').textContent = buttonLabel || 'Confirm';
+  scheduleModalAction = onConfirm;
+  document.getElementById('schedule-modal').classList.add('active');
+}
+document.getElementById('schedule-confirm-btn').addEventListener('click', async () => {
+  const value = document.getElementById('schedule-time').value;
+  if (!value) { toast('Pick a date and time first'); return; }
+  if (scheduleModalAction) await scheduleModalAction(value);
+  closeModals();
+});
+
+/* ============================================================
+   CATEGORY PICK MODAL — used when adding a skill whose text
+   doesn't obviously match an existing category name.
+   ============================================================ */
+let categoryPickAction = null;
+function openCategoryPickModal(description, onConfirm){
+  document.getElementById('category-pick-sub').textContent = `"${description}" — pick the closest category:`;
+  const select = document.getElementById('category-pick-select');
+  select.innerHTML = categories.map(c => `<option value="${c.category_id}">${c.category_name}</option>`).join('');
+  categoryPickAction = onConfirm;
+  document.getElementById('category-pick-modal').classList.add('active');
+}
+document.getElementById('category-pick-confirm-btn').addEventListener('click', async () => {
+  const categoryId = Number(document.getElementById('category-pick-select').value);
+  const category = categories.find(c => c.category_id === categoryId);
+  if (categoryPickAction && category) await categoryPickAction(category);
+  closeModals();
+});

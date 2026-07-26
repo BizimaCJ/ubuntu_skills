@@ -483,6 +483,36 @@ def get_session(session_id):
         return error_response(str(e))
 
 
+@app.route("/sessions/<int:session_id>/reschedule", methods=["PATCH"])
+def reschedule_session(session_id):
+    """
+    Updates a session's scheduled_time and puts it back to 'pending' so the
+    other participant confirms the new time. Used when either the teacher
+    or learner proposes a different slot instead of declining outright.
+    Body: { scheduled_time }
+    """
+    data = request.get_json(silent=True) or {}
+    scheduled_time = data.get("scheduled_time")
+    if not scheduled_time:
+        return error_response("'scheduled_time' is required", 400)
+
+    try:
+        conn = get_db()
+        execute(conn, 
+            "UPDATE Sessions SET scheduled_time = ?, status = 'pending', "
+            "completed_by_teacher = 0, completed_by_learner = 0 WHERE session_id = ?",
+            (scheduled_time, session_id),
+        )
+        conn.commit()
+        updated = execute(conn, "SELECT * FROM Sessions WHERE session_id = ?", (session_id,)).fetchone()
+        conn.close()
+        return jsonify({"session": row_or_none(updated)}), 200
+    except Exception as e:
+        if 'conn' in locals():
+            conn.close()
+        return error_response(str(e))
+
+
 @app.route("/sessions/<int:session_id>", methods=["PATCH"])
 def update_session(session_id):
     """

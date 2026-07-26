@@ -272,6 +272,29 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="schedule-modal">
+  <div class="modal">
+    <button class="modal-close" data-close-modal>×</button>
+    <h2 id="schedule-modal-title">Request a session</h2>
+    <p class="muted" id="schedule-modal-sub"></p>
+    <label for="schedule-time">Date &amp; time</label>
+    <input type="datetime-local" id="schedule-time">
+    <p class="hint">The other person can approve this time, or propose a different one if it doesn't work for them.</p>
+    <button class="btn btn-primary btn-block" id="schedule-confirm-btn">Send request</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="category-pick-modal">
+  <div class="modal">
+    <button class="modal-close" data-close-modal>×</button>
+    <h2>Which category is this?</h2>
+    <p class="muted" id="category-pick-sub"></p>
+    <label for="category-pick-select">Category</label>
+    <select id="category-pick-select"></select>
+    <button class="btn btn-primary btn-block" id="category-pick-confirm-btn">Add skill</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="app.js"></script>

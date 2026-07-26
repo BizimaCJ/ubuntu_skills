@@ -140,6 +140,13 @@ def update_session(session_id, status, cancelled_by=None):
     )["session"]
 
 
+def reschedule_session(session_id, scheduled_time):
+    return _request(
+        "PATCH", f"/sessions/{session_id}/reschedule",
+        json={"scheduled_time": scheduled_time},
+    )["session"]
+
+
 def mark_session_completed(session_id, role):
     return _request(
         "PATCH", f"/sessions/{session_id}/complete", json={"role": role}

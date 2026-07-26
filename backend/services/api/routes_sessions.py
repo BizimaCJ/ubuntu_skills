@@ -190,6 +190,48 @@ def decline_session(session_id):
     )
 
 
+@sessions_bp.route("/sessions/<int:session_id>/reschedule", methods=["PATCH"])
+def reschedule_session(session_id):
+    """
+    Either the teacher or learner on a pending/approved session can propose
+    a different time. This does not replace the normal approve/decline flow -
+    it's an extra option for when the original time doesn't work for someone.
+    The session goes back to 'pending' so the other side confirms the new time.
+    Body: { "user_id": <teacher_id or learner_id>, "scheduled_time": "..." }
+    """
+    data = request.get_json(silent=True) or {}
+    user_id, err = _require_int(data, "user_id")
+    if err:
+        return err
+    scheduled_time = data.get("scheduled_time")
+    if not scheduled_time:
+        return error_response("'scheduled_time' is required", 400)
+
+    session = db_client.get_session(session_id)
+    if not session:
+        return error_response(f"No session found with session_id {session_id}", 404)
+
+    if session["status"] not in ("pending", "approved"):
+        return error_response(
+            f"Session #{session_id} is '{session['status']}' and can no longer be rescheduled", 409
+        )
+
+    teacher_id, learner_id = session["teacher_id"], session["learner_id"]
+    if user_id not in (teacher_id, learner_id):
+        return error_response("Only the teacher or learner on this session can reschedule it", 403)
+
+    updated = db_client.reschedule_session(session_id, scheduled_time)
+
+    other_party = learner_id if user_id == teacher_id else teacher_id
+    _notify(
+        other_party, "session_requested",
+        f"A new time was proposed for session #{session_id} - please confirm.",
+        related_session_id=session_id,
+    )
+
+    return jsonify({"message": f"Session #{session_id} rescheduled", "session": updated}), 200
+
+
 @sessions_bp.route("/sessions/<int:session_id>/cancel", methods=["PATCH"])
 def cancel_session(session_id):
     """
