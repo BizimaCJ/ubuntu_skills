@@ -126,13 +126,20 @@ Load `backend/database/schema.sql` into a PostgreSQL database before starting th
 
 Then open `Frontend/index.html` in a browser, or update `AUTH_BASE` / `API_BASE` in `Frontend/app.js` to point at your local services instead of the deployed URLs.
 
-## Project Status
+## Demo video
 
-Ubuntu Skills is under active development by a five-person student team. Known gaps being worked on:
+https://youtu.be/a9JX5J0AAr4
 
-- Cancelled session visibility in the frontend
-- Unread message badge wiring
-- A frontend for the manual document-verification admin flow (the admin API already exists)
-- Session reminder generation
+## Team Members 
+
+Chance Jessica Bizima
+
+Divin Semana
+
+Bertrand Arnaud Rusanganwa
+
+Emna Barezi
+
+Martha Kanogo
 
 
