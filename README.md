@@ -133,9 +133,13 @@ https://youtu.be/a9JX5J0AAr4
 ## Team Members 
 
 Chance Jessica Bizima
+
 Divin Semana
+
 Bertrand Arnaud Rusanganwa
+
 Emna Barezi
+
 Martha Kanogo
 
 
