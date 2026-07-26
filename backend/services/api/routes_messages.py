@@ -68,16 +68,6 @@ def send_message(conversation_id):
 
     try:
         message = db_client.insert_message(conversation_id, sender_id, message_text)
-
-        participants = db_client.get_conversation_participants(conversation_id)
-        for participant in participants:
-            if participant["user_id"] != sender_id:
-                db_client.insert_notification(
-                    user_id=participant["user_id"],
-                    notification_type="new_message",
-                    message="You have a new message",
-                )
-
         return jsonify({"message_sent": message}), 201
     except DBServiceError as e:
         return handle_db_error(e)

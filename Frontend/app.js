@@ -47,7 +47,9 @@ const ICONS = {
   logout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>',
   camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
   'user-plus': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>',
-  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>'
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>',
+  eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+  'eye-off': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.3 20.3 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a20.3 20.3 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>'
 };
 function stampIcons(root = document) {
   root.querySelectorAll('[data-icon]').forEach(el => {
@@ -147,6 +149,17 @@ async function loadLookupData(){
 }
 loadLookupData();
 
+// PASSWORD VISIBILITY TOGGLE
+document.querySelectorAll('[data-toggle-password]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const input = document.getElementById(btn.dataset.togglePassword);
+    const showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    btn.innerHTML = '';
+    btn.appendChild(document.createRange().createContextualFragment(ICONS[showing ? 'eye' : 'eye-off']));
+  });
+});
+
 // LOGIN
 document.getElementById('login-form').addEventListener('submit', async e => {
   e.preventDefault();
@@ -210,6 +223,12 @@ async function enterApp(){
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('app-shell').classList.remove('hidden');
   await refreshEverything();
+  const lastView = sessionStorage.getItem('ubuntuskills_active_view');
+  if (lastView && document.getElementById('view-' + lastView)) {
+    document.querySelectorAll('.nav-btn[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === lastView));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + lastView).classList.add('active');
+  }
 }
 
 document.getElementById('logout-btn').addEventListener('click', async () => {
@@ -238,6 +257,7 @@ document.querySelectorAll('.nav-btn[data-view]').forEach(btn => {
     btn.classList.add('active');
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById('view-' + btn.dataset.view).classList.add('active');
+    sessionStorage.setItem('ubuntuskills_active_view', btn.dataset.view);
   });
 });
 document.getElementById('profile-message-btn').addEventListener('click', async () => {
@@ -275,16 +295,29 @@ async function loadProfile(){
     const { user } = await api(`/api/users/${currentUser.user_id}`);
     currentUser = { ...currentUser, ...user };
 
-    document.querySelector('#view-profile h1').textContent = user.name;
+    const nameEl = document.querySelector('#view-profile h1');
+    nameEl.textContent = user.name;
+    nameEl.classList.remove('skeleton-text');
     const degree = degrees.find(d => d.degree_id === user.degree_id);
-    document.querySelector('#view-profile .muted').textContent =
+    const degreeEl = document.querySelector('#view-profile .muted');
+    degreeEl.textContent =
       [degree ? degree.degree_name : null, user.class_year ? `Class of ${user.class_year}` : null].filter(Boolean).join(' · ') || 'No degree set yet';
+    degreeEl.classList.remove('skeleton-text');
     document.querySelector('#view-profile .stars').dataset.rating = user.credits_average;
-    document.querySelector('#view-profile .credits-label').innerHTML =
-      `${user.credits_average} <span class="muted">Ubuntu Credits (${user.credits_count} reviews)</span>`;
+    const creditsEl = document.querySelector('#view-profile .credits-label');
+    creditsEl.innerHTML = `${user.credits_average} <span class="muted">Ubuntu Credits (${user.credits_count} reviews)</span>`;
+    creditsEl.classList.remove('skeleton-text');
 
     const avatarEl = document.getElementById('profile-avatar');
+    avatarEl.classList.remove('skeleton-circle');
     avatarEl.innerHTML = user.avatar_url ? `<img src="${user.avatar_url}" alt="">` : initials(user.name);
+
+    const indicatorAvatar = document.getElementById('account-indicator-avatar');
+    const indicatorName = document.getElementById('account-indicator-name');
+    indicatorAvatar.classList.remove('skeleton-circle');
+    indicatorAvatar.innerHTML = user.avatar_url ? `<img src="${user.avatar_url}" alt="">` : initials(user.name);
+    indicatorName.textContent = user.name;
+    indicatorName.classList.remove('skeleton-text');
 
     const [teachRes, learnRes] = await Promise.all([
       api(`/api/users/${currentUser.user_id}/skills?type=teach`),

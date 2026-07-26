@@ -43,7 +43,10 @@
       <input type="email" id="login-email" placeholder="you@university.edu" required>
 
       <label for="login-password">Password</label>
-      <input type="password" id="login-password" placeholder="Enter your password" required>
+      <div class="password-field">
+        <input type="password" id="login-password" placeholder="Enter your password" required>
+        <button type="button" class="password-toggle" data-toggle-password="login-password"><i data-icon="eye"></i></button>
+      </div>
 
       <a href="#" class="forgot">Forgot password?</a>
       <button type="submit" class="btn btn-primary btn-block">Log in</button>
@@ -87,7 +90,10 @@
       <input type="number" id="signup-class-year" placeholder="2027" min="2020" max="2035">
 
       <label for="signup-password">Password</label>
-      <input type="password" id="signup-password" placeholder="Create a password" required>
+      <div class="password-field">
+        <input type="password" id="signup-password" placeholder="Create a password" required>
+        <button type="button" class="password-toggle" data-toggle-password="signup-password"><i data-icon="eye"></i></button>
+      </div>
 
       <button type="submit" class="btn btn-primary btn-block">Create account</button>
     </form>
@@ -109,7 +115,7 @@
     <nav class="sidebar-nav">
       <button class="nav-btn active" data-view="profile" title="Profile"><i data-icon="user"></i><span>Profile</span></button>
       <button class="nav-btn" data-view="search" title="Search"><i data-icon="search"></i><span>Search</span></button>
-      <button class="nav-btn" data-view="messages" title="Messages"><i data-icon="message"></i><span>Messages</span><span class="dot-badge" id="msg-badge">2</span></button>
+      <button class="nav-btn" data-view="messages" title="Messages"><i data-icon="message"></i><span>Messages</span></button>
       <button class="nav-btn" data-view="sessions" title="Sessions"><i data-icon="calendar"></i><span>Sessions</span></button>
       <button class="nav-btn" data-view="notifications" title="Notifications"><i data-icon="bell"></i><span>Notifications</span><span class="dot-badge" id="notif-badge">3</span></button>
       <button class="nav-btn" data-view="community" title="Community"><i data-icon="users"></i><span>Community</span></button>
@@ -117,22 +123,27 @@
     <button class="nav-btn nav-logout" id="logout-btn" title="Log out"><i data-icon="logout"></i><span>Log out</span></button>
   </aside>
 
+  <div class="account-indicator" id="account-indicator">
+    <div class="avatar avatar-sm skeleton-circle" id="account-indicator-avatar"></div>
+    <span class="skeleton-text" id="account-indicator-name" style="width:90px;">&nbsp;</span>
+  </div>
+
   <main class="content">
 
     <!-- ---------- PROFILE ---------- -->
     <section class="view active" id="view-profile">
       <div class="profile-header card">
         <div class="avatar-upload">
-          <div class="avatar avatar-xl" id="profile-avatar">AD</div>
+          <div class="avatar avatar-xl skeleton-circle" id="profile-avatar"></div>
           <label class="avatar-edit" for="avatar-input"><i data-icon="camera"></i></label>
           <input type="file" id="avatar-input" accept="image/*" hidden>
         </div>
         <div class="profile-header-info">
-          <h1>Amara Diallo</h1>
-          <p class="muted">Computer Science · Class of 2027</p>
+          <h1 class="skeleton-text" style="width:180px;">&nbsp;</h1>
+          <p class="muted skeleton-text" style="width:220px;">&nbsp;</p>
           <div class="credits-row">
-            <span class="stars" data-rating="4.6"></span>
-            <span class="credits-label">4.6 <span class="muted">Ubuntu Credits (38 reviews)</span></span>
+            <span class="stars" data-rating="0"></span>
+            <span class="credits-label skeleton-text" style="width:160px;">&nbsp;</span>
           </div>
         </div>
         <button class="btn btn-secondary" id="profile-message-btn"><i data-icon="message"></i> Message</button>
