@@ -35,6 +35,8 @@ def _request(method, path, **kwargs):
 def get_user_by_email(email):
     return _request("GET", f"/users/by-email/{email}")["user"]
 
+def get_user_by_id(user_id):
+    return _request("GET", f"/users/{user_id}")["user"]
 
 def insert_user(name, email, password_hash, verification_method, verification_status,
                  verification_document_path=None, bio=None, degree_id=None, class_year=None):
