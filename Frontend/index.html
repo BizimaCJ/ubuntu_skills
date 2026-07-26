@@ -40,11 +40,11 @@
     <!-- LOGIN FORM -->
     <form class="auth-form active" id="login-form" data-panel="login">
       <label for="login-email">Student email</label>
-      <input type="email" id="login-email" placeholder="you@university.edu" required>
+      <input type="email" id="login-email" required>
 
       <label for="login-password">Password</label>
       <div class="password-field">
-        <input type="password" id="login-password" placeholder="Enter your password" required>
+        <input type="password" id="login-password" required>
         <button type="button" class="password-toggle" data-toggle-password="login-password"><i data-icon="eye"></i></button>
       </div>
 
@@ -55,7 +55,7 @@
     <!-- SIGNUP FORM -->
     <form class="auth-form" id="signup-form" data-panel="signup">
       <label for="signup-name">Full name</label>
-      <input type="text" id="signup-name" placeholder="Amara Diallo" required>
+      <input type="text" id="signup-name" required>
 
       <label>How should we verify you're a student?</label>
       <div class="verify-toggle">
@@ -69,7 +69,7 @@
 
       <div class="verify-panel active" data-verify-panel="email">
         <label for="signup-email">Student email</label>
-        <input type="email" id="signup-email" placeholder="you@university.edu">
+        <input type="email" id="signup-email">
         <p class="hint">We'll send a confirmation link to this address — instant, automatic, no waiting on a reviewer.</p>
       </div>
 
@@ -87,11 +87,11 @@
       <select id="signup-degree"></select>
 
       <label for="signup-class-year">Class year</label>
-      <input type="number" id="signup-class-year" placeholder="2027" min="2020" max="2035">
+      <input type="number" id="signup-class-year" min="2020" max="2035">
 
       <label for="signup-password">Password</label>
       <div class="password-field">
-        <input type="password" id="signup-password" placeholder="Create a password" required>
+        <input type="password" id="signup-password" required>
         <button type="button" class="password-toggle" data-toggle-password="signup-password"><i data-icon="eye"></i></button>
       </div>
 
@@ -158,7 +158,7 @@
             <span class="chip chip-teal">Python <button data-remove>×</button></span>
             <span class="chip chip-teal">Guitar basics <button data-remove>×</button></span>
             <span class="chip chip-teal">Calculus I <button data-remove>×</button></span>
-            <input type="text" placeholder="Add a skill and press Enter">
+            <input type="text">
           </div>
         </div>
 
@@ -169,7 +169,7 @@
           <div class="chip-input" data-chip-group="learn">
             <span class="chip chip-steel">French conversation <button data-remove>×</button></span>
             <span class="chip chip-steel">Watercolor painting <button data-remove>×</button></span>
-            <input type="text" placeholder="Add a skill and press Enter">
+            <input type="text">
           </div>
         </div>
       </div>
@@ -188,7 +188,7 @@
       <h1 class="view-title">Find a skill, or someone to teach it to</h1>
       <div class="search-bar">
         <i data-icon="search"></i>
-        <input type="text" id="search-input" placeholder="Search skills or people…">
+        <input type="text" id="search-input">
       </div>
       <div class="filter-row" id="filter-row">
         <button class="filter-chip active" data-filter="all">All</button>
@@ -212,7 +212,7 @@
           <div class="chat-header" id="chat-header"></div>
           <div class="chat-body" id="chat-body"></div>
           <form class="chat-input-row" id="chat-form">
-            <input type="text" id="chat-input" placeholder="Write a message…">
+            <input type="text" id="chat-input">
             <button type="submit" class="btn btn-primary btn-small">Send</button>
           </form>
         </div>
@@ -271,7 +271,7 @@
     <div class="star-picker" id="star-picker">
       <button data-star="1">★</button><button data-star="2">★</button><button data-star="3">★</button><button data-star="4">★</button><button data-star="5">★</button>
     </div>
-    <textarea id="review-text" placeholder="Share how the session went…" rows="4"></textarea>
+    <textarea id="review-text" rows="4"></textarea>
     <button class="btn btn-primary btn-block" id="submit-review-btn">Submit review &amp; award credits</button>
   </div>
 </div>
@@ -281,7 +281,7 @@
     <button class="modal-close" data-close-modal>×</button>
     <h2>Host a group session</h2>
     <label for="gs-topic">Topic</label>
-    <input type="text" id="gs-topic" placeholder="e.g. Intro to Watercolor">
+    <input type="text" id="gs-topic">
     <label for="gs-category">Category</label>
     <select id="gs-category"></select>
     <label for="gs-time">Time slot</label>
