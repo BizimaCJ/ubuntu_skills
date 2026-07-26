@@ -83,7 +83,7 @@ let mySkills = { teach: [], learn: [] };
 let peopleIndex = [];        // merged user + skills, used by the Search page
 let conversations = [];
 let activeConvId = null;
-let sessionsByTab = { upcoming: [], pending: [], completed: [], declined: [], cancelled: [] };
+let sessionsByTab = { upcoming: [], pending: [], completed: [], declined: [] };
 let notifications = [];
 let groupSessions = [];
 const userCache = {};        // user_id -> { name, ... }, filled in lazily
@@ -493,7 +493,7 @@ function renderResults(query=''){
       </div>
       <div class="result-tags">
         ${p.teach.map(s => `<span class="tag">Teaches ${s}</span>`).join('')}
-        ${activeFilter !== 'teach' ? p.learn.map(s => `<span class="tag tag-learn">Wants ${s}</span>`).join('') : ''}
+        ${activeFilter !== 'teach' ? p.learn.map(s => `<span class="tag" style="background:var(--teal);color:#0F3A30">Wants ${s}</span>`).join('') : ''}
       </div>
       <div class="result-actions">
         <button class="btn btn-secondary" data-request-idx="${i}" ${p.teachSkillIds.length ? '' : 'disabled'}>Request session</button>
@@ -773,21 +773,19 @@ async function enrichSessions(rawSessions){
 
 async function loadSessions(){
   try {
-    const [upcoming, pending, completed, declined, cancelled] = await Promise.all([
+    const [upcoming, pending, completed, declined] = await Promise.all([
       api(`/api/users/${currentUser.user_id}/sessions?status=approved`),
       api(`/api/users/${currentUser.user_id}/sessions?status=pending`),
       api(`/api/users/${currentUser.user_id}/sessions?status=completed`),
       api(`/api/users/${currentUser.user_id}/sessions?status=declined`),
-      api(`/api/users/${currentUser.user_id}/sessions?status=cancelled`),
     ]);
-    const [u, p, c, d, x] = await Promise.all([
+    const [u, p, c, d] = await Promise.all([
       enrichSessions(upcoming.sessions || []),
       enrichSessions(pending.sessions || []),
       enrichSessions(completed.sessions || []),
       enrichSessions(declined.sessions || []),
-      enrichSessions(cancelled.sessions || []),
     ]);
-    sessionsByTab = { upcoming: u, pending: p, completed: c, declined: d, cancelled: x };
+    sessionsByTab = { upcoming: u, pending: p, completed: c, declined: d };
     renderSessions();
   } catch (err) {
     toast(err.message);
