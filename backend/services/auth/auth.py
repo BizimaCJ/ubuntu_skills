@@ -1,7 +1,7 @@
 import os
 import uuid
 
-from flask import Flask, request, jsonify, session
+from flask import Flask, request, jsonify, session, send_from_directory
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -228,6 +228,27 @@ def review_verification(user_id):
         return jsonify({'error': e.message}), e.status_code
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/verifications/<int:user_id>/document', methods=['GET'])
+def get_verification_document(user_id):
+    auth_error = _require_admin_key()
+    if auth_error:
+        return auth_error
+
+    try:
+        user = db_client.get_user_by_id(user_id)
+    except DBServiceError as e:
+        return jsonify({'error': e.message}), e.status_code
+
+    if not user:
+        return jsonify({'error': f'No user found with user_id {user_id}'}), 404
+
+    document_path = user.get('verification_document_path')
+    if user.get('verification_method') != 'document' or not document_path:
+        return jsonify({'error': 'This user has no uploaded verification document'}), 404
+
+    return send_from_directory(UPLOAD_FOLDER, document_path)
 
 
 if __name__ == '__main__':
