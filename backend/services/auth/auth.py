@@ -6,12 +6,12 @@ from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
-from config import SECRET_KEY, SCHOOL_EMAIL_DOMAIN, UPLOAD_FOLDER, ALLOWED_DOCUMENT_EXTENSIONS, ADMIN_KEY, PORT
+from config import SECRET_KEY, SCHOOL_EMAIL_DOMAIN, UPLOAD_FOLDER, ALLOWED_DOCUMENT_EXTENSIONS, ADMIN_KEY, PORT, CORS_ORIGINS
 import db_client
 from db_client import DBServiceError
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True, origins=["https://ubuntu-skills-frontend.onrender.com"])
+CORS(app, supports_credentials=True, origins=CORS_ORIGINS)
 app.secret_key = SECRET_KEY
 bcrypt = Bcrypt(app)
 
