@@ -1147,6 +1147,32 @@ def mark_all_notifications_read(user_id):
         return error_response(str(e))
 
 
+@app.route("/notifications/delete", methods=["POST"])
+def delete_notifications():
+    """
+    Body: { notification_ids: [1, 2, 3] }
+    POST rather than DELETE because we need a JSON body listing several ids.
+    """
+    data = request.get_json(silent=True) or {}
+    ids = data.get("notification_ids") or []
+    if not ids:
+        return error_response("'notification_ids' must be a non empty list", 400)
+
+    try:
+        conn = get_db()
+        deleted = 0
+        for nid in ids:
+            cur = execute(conn, "DELETE FROM Notifications WHERE notification_id = ?", (int(nid),))
+            deleted += cur.rowcount
+        conn.commit()
+        conn.close()
+        return jsonify({"deleted_count": deleted}), 200
+    except Exception as e:
+        if 'conn' in locals():
+            conn.close()
+        return error_response(str(e))
+
+
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok"}), 200

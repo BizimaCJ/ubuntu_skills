@@ -319,6 +319,10 @@ async function loadProfile(){
     indicatorName.textContent = user.name;
     indicatorName.classList.remove('skeleton-text');
 
+    const firstName = user.name.split(' ')[0];
+    const profileNavLabel = document.querySelector('.nav-btn[data-view="profile"] span:not(.dot-badge)');
+    if (profileNavLabel) profileNavLabel.textContent = firstName;
+
     const [teachRes, learnRes] = await Promise.all([
       api(`/api/users/${currentUser.user_id}/skills?type=teach`),
       api(`/api/users/${currentUser.user_id}/skills?type=learn`),
@@ -449,7 +453,6 @@ async function loadPeopleIndex(){
         user_id: u.user_id,
         name: u.name,
         meta: [degrees.find(d => d.degree_id === u.degree_id)?.degree_name, u.class_year ? `Class of ${u.class_year}` : null].filter(Boolean).join(' · '),
-        rating: u.credits_average,
         initials: initials(u.name),
         teach: [],
         learn: [],
@@ -477,7 +480,6 @@ function renderResults(query=''){
     const text = (p.name + ' ' + p.teach.join(' ') + ' ' + p.learn.join(' ')).toLowerCase();
     return text.includes(q);
   });
-  if(activeFilter === 'top') list = list.filter(p => p.rating >= 4.7);
   if(activeFilter === 'teach') list = list.filter(p => p.teach.length);
   if(activeFilter === 'learn') list = list.filter(p => p.learn.length);
   document.getElementById('results-grid').innerHTML = list.map((p, i) => `
@@ -486,7 +488,7 @@ function renderResults(query=''){
         <div class="avatar avatar-md">${p.initials}</div>
         <div>
           <div class="result-name">${p.name}</div>
-          <div class="result-meta">${p.meta} · ★ ${p.rating}</div>
+          <div class="result-meta">${p.meta}</div>
         </div>
       </div>
       <div class="result-tags">
@@ -514,14 +516,18 @@ function renderResults(query=''){
 
   document.querySelectorAll('[data-request-idx]').forEach(btn => btn.addEventListener('click', () => {
     const person = list[Number(btn.dataset.requestIdx)];
+    const skillOptions = (person.teach || []).map((desc, i) => ({ id: person.teachSkillIds[i], label: desc }));
     openScheduleModal({
       title: `Request a session with ${person.name}`,
       sub: 'They can approve this time, or message you to propose a different one.',
       buttonLabel: 'Send request',
       initialValue: '',
-      onConfirm: async (when) => {
+      skillOptions,
+      onConfirm: async (when, skillId) => {
         try {
-          await api('/api/sessions', { method: 'POST', body: { learner_id: currentUser.user_id, teacher_id: person.user_id, scheduled_time: when } });
+          const body = { learner_id: currentUser.user_id, scheduled_time: when };
+          if (skillId) body.user_skill_id = skillId; else body.teacher_id = person.user_id;
+          await api('/api/sessions', { method: 'POST', body });
           toast(`Session requested with ${person.name}`);
           await loadSessions();
         } catch (err) {
@@ -549,15 +555,24 @@ async function loadConversations(){
     const { conversations: convs } = await api(`/api/users/${currentUser.user_id}/conversations`);
     conversations = (convs || []).map(c => {
       const others = (c.participants || []).filter(p => p.user_id !== currentUser.user_id);
-      const name = c.is_group
-        ? (others.map(p => p.name).join(', ') || 'Group chat')
-        : (others[0]?.name || (c.participants || []).length ? 'You' : 'Conversation');
+      const isSelfChat = !c.is_group && others.length === 0 && (c.participants || []).length > 0;
+      let name, subtitle = null;
+      if (c.is_group) {
+        name = others.map(p => p.name).join(', ') || 'Group chat';
+      } else if (isSelfChat) {
+        name = currentUser.name;
+        subtitle = "It's you";
+      } else {
+        name = others[0]?.name || 'Conversation';
+      }
       return {
         id: c.conversation_id,
         name,
+        subtitle,
         initials: initials(name),
         group: !!c.is_group,
-        otherUserId: !c.is_group ? (others[0]?.user_id ?? currentUser.user_id) : null,
+        otherUserId: !c.is_group ? (isSelfChat ? currentUser.user_id : others[0]?.user_id) : null,
+        participants: c.participants || [],
       };
     });
     if (!activeConvId && conversations.length) activeConvId = conversations[0].id;
@@ -572,7 +587,7 @@ function renderConvList(){
     <div class="conv-item ${c.id === activeConvId ? 'active' : ''}" data-conv="${c.id}">
       <div class="avatar avatar-md">${c.initials}</div>
       <div class="conv-info">
-        <div class="conv-name">${c.name}${c.group ? '<span class="group-icon-badge">GROUP</span>' : ''}</div>
+        <div class="conv-name">${c.name}${c.subtitle ? ` <span class="conv-subtitle">${c.subtitle}</span>` : ''}${c.group ? '<span class="group-icon-badge">GROUP</span>' : ''}</div>
         <div class="conv-preview">${c.preview || ''}</div>
       </div>
     </div>`).join('') || `<p class="muted" style="padding:16px">No conversations yet — message someone from Search.</p>`;
@@ -585,9 +600,13 @@ async function renderChat(){
   const c = conversations.find(x => x.id === activeConvId);
   if (!c) { document.getElementById('chat-header').innerHTML = ''; document.getElementById('chat-body').innerHTML = ''; return; }
   document.getElementById('chat-header').innerHTML = c.group
-    ? `<div class="avatar avatar-sm">${c.initials}</div><span>${c.name}</span>`
-    : `<div class="avatar avatar-sm" style="cursor:pointer" id="chat-header-avatar">${c.initials}</div><span style="cursor:pointer" id="chat-header-name">${c.name}</span>`;
-  if (!c.group) {
+    ? `<div class="avatar avatar-sm" style="cursor:pointer" id="chat-header-avatar">${c.initials}</div><span style="cursor:pointer" id="chat-header-name">${c.name}</span>`
+    : `<div class="avatar avatar-sm" style="cursor:pointer" id="chat-header-avatar">${c.initials}</div><span style="cursor:pointer" id="chat-header-name">${c.name}</span>${c.subtitle ? ` <span class="conv-subtitle">${c.subtitle}</span>` : ''}`;
+  if (c.group) {
+    const openMembers = () => openGroupMembersModal(c);
+    document.getElementById('chat-header-avatar').addEventListener('click', openMembers);
+    document.getElementById('chat-header-name').addEventListener('click', openMembers);
+  } else {
     const openProfile = () => openOtherProfileModal(c.otherUserId);
     document.getElementById('chat-header-avatar').addEventListener('click', openProfile);
     document.getElementById('chat-header-name').addEventListener('click', openProfile);
@@ -711,7 +730,7 @@ function renderSessions(){
   document.getElementById('sessions-list').innerHTML = list.map((s, i) => {
     const statusLabel = s.status.charAt(0).toUpperCase() + s.status.slice(1);
     let actions = '';
-    const rescheduleBtn = `<button class="btn-icon" data-reschedule-idx="${i}" title="Propose a different time">📅</button>`;
+    const rescheduleBtn = `<button class="btn-icon" data-reschedule-idx="${i}" title="Propose a different time"><i data-icon="calendar"></i></button>`;
     if (currentSessionTab === 'upcoming') {
       actions = `${rescheduleBtn}<button class="btn btn-secondary" data-cancel-idx="${i}">Cancel</button>`;
     }
@@ -744,6 +763,7 @@ function renderSessions(){
   document.querySelectorAll('[data-confirm-idx]').forEach(btn => btn.addEventListener('click', () => completeSession(list[Number(btn.dataset.confirmIdx)])));
   document.querySelectorAll('[data-review-idx]').forEach(btn => btn.addEventListener('click', () => openReviewModal(list[Number(btn.dataset.reviewIdx)])));
   document.querySelectorAll('[data-reschedule-idx]').forEach(btn => btn.addEventListener('click', () => openRescheduleModal(list[Number(btn.dataset.rescheduleIdx)])));
+  stampIcons(document.getElementById('sessions-list'));
 }
 function openRescheduleModal(session){
   openScheduleModal({
@@ -773,8 +793,9 @@ async function respondSession(session, status){
   try {
     const action = status === 'approved' ? 'approve' : 'decline';
     await api(`/api/sessions/${session.session_id}/${action}`, { method: 'PATCH', body: { user_id: currentUser.user_id } });
+    await markSessionNotificationsRead(session.session_id);
     toast(`Session ${status}`);
-    await loadSessions();
+    await Promise.all([loadSessions(), loadNotifications()]);
   } catch (err) { toast(err.message); }
 }
 async function cancelSession(session){
@@ -842,9 +863,11 @@ async function loadNotifications(){
     toast(err.message);
   }
 }
+let selectedNotifIds = new Set();
 function renderNotifications(){
   document.getElementById('notif-list').innerHTML = notifications.map(n => `
     <div class="notif-item ${!n.is_read ? 'unread' : ''}">
+      <input type="checkbox" class="notif-check" data-notif-check="${n.notification_id}" ${selectedNotifIds.has(n.notification_id) ? 'checked' : ''}>
       <div class="notif-icon"><i data-icon="${NOTIF_ICON[n.notification_type] || 'bell'}"></i></div>
       <div class="notif-body">
         <p class="notif-text">${n.message}</p>
@@ -854,6 +877,23 @@ function renderNotifications(){
     </div>`).join('') || `<p class="muted">No notifications yet.</p>`;
   stampIcons(document.getElementById('notif-list'));
   updateNotifBadge();
+  updateNotifToolbar();
+  document.querySelectorAll('[data-notif-check]').forEach(cb => cb.addEventListener('change', () => {
+    const id = Number(cb.dataset.notifCheck);
+    if (cb.checked) selectedNotifIds.add(id); else selectedNotifIds.delete(id);
+    updateNotifToolbar();
+  }));
+}
+function updateNotifToolbar(){
+  const toolbar = document.getElementById('notif-bulk-actions');
+  if (!toolbar) return;
+  toolbar.style.display = selectedNotifIds.size ? 'flex' : 'none';
+  const countEl = document.getElementById('notif-selected-count');
+  if (countEl) countEl.textContent = `${selectedNotifIds.size} selected`;
+}
+async function markSessionNotificationsRead(sessionId){
+  const toMark = notifications.filter(n => n.related_session_id === Number(sessionId) && !n.is_read);
+  await Promise.all(toMark.map(n => api(`/api/notifications/${n.notification_id}/read`, { method: 'PATCH' }).catch(() => {})));
 }
 function updateNotifBadge(){
   const count = notifications.filter(n => !n.is_read).length;
@@ -867,17 +907,36 @@ document.getElementById('mark-all-read').addEventListener('click', async () => {
     await loadNotifications();
   } catch (err) { toast(err.message); }
 });
+document.getElementById('notif-delete-selected').addEventListener('click', async () => {
+  try {
+    await api('/api/notifications/delete', { method: 'POST', body: { notification_ids: Array.from(selectedNotifIds) } });
+    selectedNotifIds.clear();
+    await loadNotifications();
+    toast('Deleted selected notifications');
+  } catch (err) { toast(err.message); }
+});
+document.getElementById('notif-read-selected').addEventListener('click', async () => {
+  try {
+    await Promise.all(Array.from(selectedNotifIds).map(id => api(`/api/notifications/${id}/read`, { method: 'PATCH' })));
+    selectedNotifIds.clear();
+    await loadNotifications();
+  } catch (err) { toast(err.message); }
+});
 document.getElementById('notif-list').addEventListener('click', async e => {
   if(e.target.matches('[data-approve]')){
+    const sessionId = e.target.dataset.approve;
     try {
-      await api(`/api/sessions/${e.target.dataset.approve}/approve`, { method: 'PATCH', body: { user_id: currentUser.user_id } });
+      await api(`/api/sessions/${sessionId}/approve`, { method: 'PATCH', body: { user_id: currentUser.user_id } });
+      await markSessionNotificationsRead(sessionId);
       toast('Session approved — added to your upcoming sessions.');
       await Promise.all([loadNotifications(), loadSessions()]);
     } catch (err) { toast(err.message); }
   }
   if(e.target.matches('[data-decline]')){
+    const sessionId = e.target.dataset.decline;
     try {
-      await api(`/api/sessions/${e.target.dataset.decline}/decline`, { method: 'PATCH', body: { user_id: currentUser.user_id } });
+      await api(`/api/sessions/${sessionId}/decline`, { method: 'PATCH', body: { user_id: currentUser.user_id } });
+      await markSessionNotificationsRead(sessionId);
       toast('Session declined.');
       await Promise.all([loadNotifications(), loadSessions()]);
     } catch (err) { toast(err.message); }
@@ -988,18 +1047,29 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => overlay.addEventL
    popups anywhere in this app; this is the one date/time picker.
    ============================================================ */
 let scheduleModalAction = null;
-function openScheduleModal({ title, sub, buttonLabel, initialValue, onConfirm }){
+function openScheduleModal({ title, sub, buttonLabel, initialValue, skillOptions, onConfirm }){
   document.getElementById('schedule-modal-title').textContent = title;
   document.getElementById('schedule-modal-sub').textContent = sub || '';
   document.getElementById('schedule-time').value = initialValue || '';
   document.getElementById('schedule-confirm-btn').textContent = buttonLabel || 'Confirm';
+  const skillField = document.getElementById('schedule-skill-field');
+  const skillSelect = document.getElementById('schedule-skill');
+  if (skillOptions && skillOptions.length) {
+    skillSelect.innerHTML = '<option value="">General session (no specific topic)</option>' +
+      skillOptions.map(o => `<option value="${o.id}">${o.label}</option>`).join('');
+    skillField.style.display = '';
+  } else {
+    skillField.style.display = 'none';
+  }
   scheduleModalAction = onConfirm;
   document.getElementById('schedule-modal').classList.add('active');
 }
 document.getElementById('schedule-confirm-btn').addEventListener('click', async () => {
   const value = document.getElementById('schedule-time').value;
   if (!value) { toast('Pick a date and time first'); return; }
-  if (scheduleModalAction) await scheduleModalAction(value);
+  const skillSelect = document.getElementById('schedule-skill');
+  const skillId = skillSelect.value ? Number(skillSelect.value) : null;
+  if (scheduleModalAction) await scheduleModalAction(value, skillId);
   closeModals();
 });
 
@@ -1007,6 +1077,19 @@ document.getElementById('schedule-confirm-btn').addEventListener('click', async 
    OTHER PERSON'S PROFILE — read-only view, opened by clicking a
    name/photo in an open conversation.
    ============================================================ */
+function openGroupMembersModal(conversation){
+  const list = document.getElementById('group-members-list');
+  list.innerHTML = (conversation.participants || []).map(p => `
+    <div class="group-member-row" data-member="${p.user_id}" style="display:flex; align-items:center; gap:10px; padding:8px 4px; cursor:pointer; border-radius:8px;">
+      <div class="avatar avatar-sm">${initials(p.name)}</div>
+      <span>${p.name}${p.user_id === currentUser.user_id ? ' (You)' : ''}</span>
+    </div>`).join('') || `<p class="muted">No members found.</p>`;
+  document.querySelectorAll('#group-members-list [data-member]').forEach(row => row.addEventListener('click', () => {
+    closeModals();
+    openOtherProfileModal(Number(row.dataset.member));
+  }));
+  document.getElementById('group-members-modal').classList.add('active');
+}
 async function openOtherProfileModal(userId){
   if (!userId) return;
   try {
@@ -1038,14 +1121,18 @@ async function openOtherProfileModal(userId){
     };
     document.getElementById('op-request-btn').onclick = () => {
       closeModals();
+      const skillOptions = teach.map(s => ({ id: s.user_skill_id, label: s.description }));
       openScheduleModal({
         title: `Request a session with ${user.name}`,
         sub: 'They can approve this time, or propose a different one.',
         buttonLabel: 'Send request',
         initialValue: '',
-        onConfirm: async (when) => {
+        skillOptions,
+        onConfirm: async (when, skillId) => {
           try {
-            await api('/api/sessions', { method: 'POST', body: { learner_id: currentUser.user_id, teacher_id: userId, scheduled_time: when } });
+            const body = { learner_id: currentUser.user_id, scheduled_time: when };
+            if (skillId) body.user_skill_id = skillId; else body.teacher_id = userId;
+            await api('/api/sessions', { method: 'POST', body });
             toast(`Session requested with ${user.name}`);
             await loadSessions();
           } catch (err) { toast(err.message); }

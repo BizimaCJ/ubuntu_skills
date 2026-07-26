@@ -296,6 +296,10 @@ def mark_all_notifications_read(user_id):
     return _request("PATCH", f"/users/{user_id}/notifications/read-all")
 
 
+def delete_notifications(notification_ids):
+    return _request("POST", "/notifications/delete", json={"notification_ids": notification_ids})
+
+
 # ── Health ──
 
 def ping():

@@ -57,3 +57,23 @@ def read_all_notifications(user_id):
         return handle_db_error(e)
     except Exception as e:
         return error_response(str(e), 500)
+
+
+# bulk delete, for selecting several notifications and removing them without reading
+@notifications_bp.route("/api/notifications/delete", methods=["POST"])
+def delete_notifications():
+    data = request.get_json(silent=True) or {}
+    notification_ids = data.get("notification_ids") or []
+    if not notification_ids:
+        return error_response("'notification_ids' must be a non empty list", 400)
+
+    try:
+        result = db_client.delete_notifications(notification_ids)
+        return jsonify({
+            "message": "Notifications deleted",
+            "deleted_count": result.get("deleted_count", 0),
+        }), 200
+    except DBServiceError as e:
+        return handle_db_error(e)
+    except Exception as e:
+        return error_response(str(e), 500)

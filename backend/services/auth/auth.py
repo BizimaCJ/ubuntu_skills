@@ -41,7 +41,6 @@ def _save_verification_document(file_storage):
     stored_path = os.path.join(UPLOAD_FOLDER, stored_name)
     file_storage.save(stored_path)
     return stored_name
-
 # ─ HEALTH CHECK ─
 @app.route('/health', methods=['GET'])
 def health():
