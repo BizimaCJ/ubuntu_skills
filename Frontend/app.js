@@ -571,6 +571,7 @@ async function loadConversations(){
         subtitle,
         initials: initials(name),
         group: !!c.is_group,
+        groupSessionId: c.group_session_id || null,
         otherUserId: !c.is_group ? (isSelfChat ? currentUser.user_id : others[0]?.user_id) : null,
         participants: c.participants || [],
       };
@@ -582,12 +583,80 @@ async function loadConversations(){
     toast(err.message);
   }
 }
+async function openMessagesProfilePanel(userId){
+  if (!userId) return;
+  const panel = document.getElementById('msg-profile-panel');
+  const body = document.getElementById('msg-profile-panel-body');
+  panel.classList.add('active');
+  body.innerHTML = `<p class="muted skeleton-text" style="width:100%;">&nbsp;</p>`;
+  try {
+    const [{ user }, { skills }] = await Promise.all([
+      api(`/api/users/${userId}`),
+      api(`/api/users/${userId}/skills`),
+    ]);
+    const degree = degrees.find(d => d.degree_id === user.degree_id);
+    const teach = (skills || []).filter(s => s.skill_type === 'teach');
+    const isSelf = userId === currentUser.user_id;
+
+    const allSessions = [...(sessionsByTab.upcoming || []), ...(sessionsByTab.pending || []), ...(sessionsByTab.completed || []), ...(sessionsByTab.declined || [])];
+    const withThisPerson = allSessions.filter(s => s.teacher_id === userId || s.learner_id === userId);
+
+    body.innerHTML = `
+      <div class="avatar avatar-lg">${initials(user.name)}</div>
+      <h3>${user.name}</h3>
+      <p class="muted">${[degree ? degree.degree_name : null, user.class_year ? `Class of ${user.class_year}` : null].filter(Boolean).join(' · ')}</p>
+      ${!isSelf ? `<button class="btn btn-primary btn-block" id="msph-request-btn" style="margin-top:12px;">Request session</button>` : ''}
+      <h4 style="margin-top:20px;">Session history</h4>
+      <div id="msph-sessions">${withThisPerson.length ? withThisPerson.map(s => `
+        <div class="msph-session-row">
+          <div>${sessionLabel(s)}</div>
+          <div class="muted">${s.scheduled_time} · ${s.status}</div>
+        </div>`).join('') : `<p class="muted">No sessions together yet.</p>`}</div>
+    `;
+
+    if (!isSelf) {
+      document.getElementById('msph-request-btn').addEventListener('click', () => {
+        const skillOptions = teach.map(s => ({ id: s.user_skill_id, label: s.description }));
+        openScheduleModal({
+          title: `Request a session with ${user.name}`,
+          sub: 'They can approve this time, or propose a different one.',
+          buttonLabel: 'Send request',
+          initialValue: '',
+          skillOptions,
+          onConfirm: async (when, skillId) => {
+            try {
+              const reqBody = { learner_id: currentUser.user_id, scheduled_time: when };
+              if (skillId) reqBody.user_skill_id = skillId; else reqBody.teacher_id = userId;
+              await api('/api/sessions', { method: 'POST', body: reqBody });
+              toast(`Session requested with ${user.name}`);
+              await loadSessions();
+            } catch (err) { toast(err.message); }
+          }
+        });
+      });
+    }
+  } catch (err) {
+    body.innerHTML = `<p class="muted">Couldn't load this profile.</p>`;
+    toast(err.message);
+  }
+}
+document.getElementById('msg-profile-panel-close').addEventListener('click', () => {
+  document.getElementById('msg-profile-panel').classList.remove('active');
+});
+
+function convDisplayName(c){
+  if (c.group && c.groupSessionId) {
+    const session = groupSessions.find(g => g.group_session_id === c.groupSessionId);
+    if (session) return session.topic;
+  }
+  return c.name;
+}
 function renderConvList(){
   document.getElementById('conv-items').innerHTML = conversations.map(c => `
     <div class="conv-item ${c.id === activeConvId ? 'active' : ''}" data-conv="${c.id}">
       <div class="avatar avatar-md">${c.initials}</div>
       <div class="conv-info">
-        <div class="conv-name">${c.name}${c.subtitle ? ` <span class="conv-subtitle">${c.subtitle}</span>` : ''}${c.group ? '<span class="group-icon-badge">GROUP</span>' : ''}</div>
+        <div class="conv-name">${convDisplayName(c)}${c.subtitle ? ` <span class="conv-subtitle">${c.subtitle}</span>` : ''}${c.group ? '<span class="group-icon-badge">GROUP</span>' : ''}</div>
         <div class="conv-preview">${c.preview || ''}</div>
       </div>
     </div>`).join('') || `<p class="muted" style="padding:16px">No conversations yet — message someone from Search.</p>`;
@@ -597,17 +666,19 @@ function renderConvList(){
   }));
 }
 async function renderChat(){
+  document.getElementById('msg-profile-panel').classList.remove('active');
   const c = conversations.find(x => x.id === activeConvId);
   if (!c) { document.getElementById('chat-header').innerHTML = ''; document.getElementById('chat-body').innerHTML = ''; return; }
+  const displayName = convDisplayName(c);
   document.getElementById('chat-header').innerHTML = c.group
-    ? `<div class="avatar avatar-sm" style="cursor:pointer" id="chat-header-avatar">${c.initials}</div><span style="cursor:pointer" id="chat-header-name">${c.name}</span>`
-    : `<div class="avatar avatar-sm" style="cursor:pointer" id="chat-header-avatar">${c.initials}</div><span style="cursor:pointer" id="chat-header-name">${c.name}</span>${c.subtitle ? ` <span class="conv-subtitle">${c.subtitle}</span>` : ''}`;
+    ? `<div class="avatar avatar-sm" style="cursor:pointer" id="chat-header-avatar">${initials(displayName)}</div><span style="cursor:pointer" id="chat-header-name">${displayName}</span>`
+    : `<div class="avatar avatar-sm" style="cursor:pointer" id="chat-header-avatar">${c.initials}</div><span style="cursor:pointer" id="chat-header-name">${displayName}</span>${c.subtitle ? ` <span class="conv-subtitle">${c.subtitle}</span>` : ''}`;
   if (c.group) {
     const openMembers = () => openGroupMembersModal(c);
     document.getElementById('chat-header-avatar').addEventListener('click', openMembers);
     document.getElementById('chat-header-name').addEventListener('click', openMembers);
   } else {
-    const openProfile = () => openOtherProfileModal(c.otherUserId);
+    const openProfile = () => openMessagesProfilePanel(c.otherUserId);
     document.getElementById('chat-header-avatar').addEventListener('click', openProfile);
     document.getElementById('chat-header-name').addEventListener('click', openProfile);
   }
@@ -1088,6 +1159,25 @@ function openGroupMembersModal(conversation){
     closeModals();
     openOtherProfileModal(Number(row.dataset.member));
   }));
+
+  const session = conversation.groupSessionId ? groupSessions.find(g => g.group_session_id === conversation.groupSessionId) : null;
+  const deleteBtnWrap = document.getElementById('group-delete-chat-wrap');
+  if (session && session.teacher_id === currentUser.user_id) {
+    deleteBtnWrap.style.display = '';
+    deleteBtnWrap.querySelector('button').onclick = async () => {
+      try {
+        await api(`/api/group-sessions/${session.group_session_id}/chat`, { method: 'DELETE', body: { user_id: currentUser.user_id } });
+        closeModals();
+        activeConvId = null;
+        await loadConversations();
+        renderConvList(); renderChat();
+        toast('Group chat deleted');
+      } catch (err) { toast(err.message); }
+    };
+  } else {
+    deleteBtnWrap.style.display = 'none';
+  }
+
   document.getElementById('group-members-modal').classList.add('active');
 }
 async function openOtherProfileModal(userId){

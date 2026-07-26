@@ -216,6 +216,10 @@
             <button type="submit" class="btn btn-primary btn-small">Send</button>
           </form>
         </div>
+        <div class="msg-profile-panel" id="msg-profile-panel">
+          <button class="btn-icon" id="msg-profile-panel-close" style="align-self:flex-end;">×</button>
+          <div id="msg-profile-panel-body"></div>
+        </div>
       </div>
     </section>
 
@@ -345,6 +349,9 @@
     <button class="modal-close" data-close-modal>×</button>
     <h2>Group members</h2>
     <div id="group-members-list" style="max-height:300px; overflow-y:auto; margin-top:12px;"></div>
+    <div id="group-delete-chat-wrap" style="display:none; margin-top:16px;">
+      <button class="btn btn-secondary btn-block">Delete this group chat</button>
+    </div>
   </div>
 </div>
 

@@ -224,6 +224,13 @@ i[data-icon] svg{ width:100%; height:100%; }
 /* ---------- messages ---------- */
 .messages-layout{ display:flex; background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); height:calc(100vh - 130px); overflow:hidden; }
 .conv-list{ width:280px; border-right:1px solid var(--line); display:flex; flex-direction:column; flex-shrink:0; }
+.msg-profile-panel{ width:300px; border-left:1px solid var(--line); padding:16px; flex-shrink:0; display:none; flex-direction:column; overflow-y:auto; }
+.msg-profile-panel.active{ display:flex; }
+.msg-profile-panel .avatar-lg{ margin:0 auto 10px; }
+.msg-profile-panel h3{ text-align:center; margin:0 0 4px; }
+.msg-profile-panel .muted{ text-align:center; }
+.msph-session-row{ padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; }
+.msph-session-row:last-child{ border-bottom:none; }
 .conv-list-head{ display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--line); }
 .conv-item{ display:flex; gap:10px; padding:14px 18px; cursor:pointer; border-bottom:1px solid var(--line); align-items:center; }
 .conv-item:hover, .conv-item.active{ background: var(--sand); }

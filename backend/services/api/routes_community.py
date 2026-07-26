@@ -13,6 +13,16 @@ def handle_db_error(e: DBServiceError):
     return error_response(e.message, e.status_code)
 
 
+def _require_int(data, field):
+    value = data.get(field)
+    if value is None:
+        return None, error_response(f"'{field}' is required", 400)
+    try:
+        return int(value), None
+    except (TypeError, ValueError):
+        return None, error_response(f"'{field}' must be an integer", 400)
+
+
 # host a group session, teacher is auto-added as the first member
 @community_bp.route("/api/group-sessions", methods=["POST"])
 def create_group_session():
@@ -134,7 +144,9 @@ def join_group_session(group_session_id):
         return error_response(str(e), 500)
 
 
-# mark a group session done, this empties its membership and deletes its chat
+# mark a group session done - this ends attendance tracking, but the group
+# chat itself stays open in case the group wants to keep talking/studying
+# together. Only the host can delete the chat, via a separate action.
 @community_bp.route("/api/group-sessions/<int:group_session_id>/complete", methods=["PATCH"])
 def complete_group_session(group_session_id):
     try:
@@ -145,16 +157,33 @@ def complete_group_session(group_session_id):
         db_client.update_group_session_status(group_session_id, "completed")
         db_client.clear_group_members(group_session_id)
 
-        conversations = db_client.list_user_conversations(group_session["teacher_id"])
-        matching = next(
-            (c for c in conversations if c.get("group_session_id") == group_session_id), None
-        )
-        if matching:
-            db_client.delete_conversation(matching["conversation_id"])
-
         return jsonify({"message": "Group session marked completed", "group_session_id": group_session_id}), 200
 
     except DBServiceError as e:
         return handle_db_error(e)
     except Exception as e:
         return error_response(str(e), 500)
+
+
+# only the host who created the group session can delete its chat
+@community_bp.route("/api/group-sessions/<int:group_session_id>/chat", methods=["DELETE"])
+def delete_group_chat(group_session_id):
+    data = request.get_json(silent=True) or {}
+    user_id, err = _require_int(data, "user_id")
+    if err:
+        return err
+
+    group_session = db_client.get_group_session(group_session_id)
+    if not group_session:
+        return error_response(f"No group session found with group_session_id {group_session_id}", 404)
+    if group_session["teacher_id"] != user_id:
+        return error_response("Only the host who created this group session can delete its chat", 403)
+
+    conversations = db_client.list_user_conversations(user_id)
+    matching = next(
+        (c for c in conversations if c.get("group_session_id") == group_session_id), None
+    )
+    if matching:
+        db_client.delete_conversation(matching["conversation_id"])
+
+    return jsonify({"message": "Group chat deleted"}), 200
