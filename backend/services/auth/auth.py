@@ -46,14 +46,21 @@ def _save_verification_document(file_storage):
 # ─ REGISTER ROUTE ─
 @app.route('/register', methods=['POST'])
 def register():
-    name = request.form.get('name')
-    email = request.form.get('email')
-    password = request.form.get('password')
+    # The frontend submits this as a JSON body (no real file upload yet -
+    # it just sends a placeholder path string), but we still support
+    # multipart/form-data with a real file attached for when that lands.
+    is_json_request = request.is_json
+    payload = request.get_json(silent=True) if is_json_request else request.form
+    payload = payload or {}
 
-    teach_category_id = request.form.get('teach_category_id')
-    teach_description = request.form.get('teach_description')
-    learn_category_id = request.form.get('learn_category_id')
-    learn_description = request.form.get('learn_description')
+    name = payload.get('name')
+    email = payload.get('email')
+    password = payload.get('password')
+
+    teach_category_id = payload.get('teach_category_id')
+    teach_description = payload.get('teach_description')
+    learn_category_id = payload.get('learn_category_id')
+    learn_description = payload.get('learn_description')
 
     if not name or not email or not password:
         return jsonify({'error': 'Name, email, and password are required'}), 400
@@ -70,20 +77,35 @@ def register():
         else:
             verification_method = 'document'
             verification_status = 'pending'
-            try:
-                verification_document_path = _save_verification_document(
-                    request.files.get('document')
-                )
-            except ValueError as e:
-                return jsonify({'error': str(e)}), 400
+            if is_json_request:
+                # No real file to save yet - just persist whatever path
+                # string the client sent, so the admin-review flow has
+                # something to display once it exists.
+                verification_document_path = payload.get('verification_document_path')
+                if not verification_document_path:
+                    return jsonify({
+                        'error': 'A verification document is required for non-school-email signups'
+                    }), 400
+            else:
+                try:
+                    verification_document_path = _save_verification_document(
+                        request.files.get('document')
+                    )
+                except ValueError as e:
+                    return jsonify({'error': str(e)}), 400
 
         password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+
+        degree_id = payload.get('degree_id')
+        class_year = payload.get('class_year')
 
         user_id = db_client.insert_user(
             name, email, password_hash,
             verification_method=verification_method,
             verification_status=verification_status,
             verification_document_path=verification_document_path,
+            degree_id=int(degree_id) if degree_id not in (None, '') else None,
+            class_year=int(class_year) if class_year not in (None, '') else None,
         )
 
         if teach_category_id and teach_description:

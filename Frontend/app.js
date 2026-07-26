@@ -311,6 +311,7 @@ async function loadProfile(){
     const avatarEl = document.getElementById('profile-avatar');
     avatarEl.classList.remove('skeleton-circle');
     avatarEl.innerHTML = user.avatar_url ? `<img src="${user.avatar_url}" alt="">` : initials(user.name);
+    document.getElementById('avatar-remove-btn').classList.toggle('hidden', !user.avatar_url);
 
     const indicatorAvatar = document.getElementById('account-indicator-avatar');
     const indicatorName = document.getElementById('account-indicator-name');
@@ -412,11 +413,32 @@ document.getElementById('avatar-input').addEventListener('change', e => {
     document.getElementById('profile-avatar').innerHTML = `<img src="${ev.target.result}" alt="">`;
     try {
       await api(`/api/users/${currentUser.user_id}`, { method: 'PATCH', body: { avatar_url: ev.target.result } });
+      currentUser.avatar_url = ev.target.result;
+      document.getElementById('avatar-remove-btn').classList.remove('hidden');
     } catch (err) {
       toast(err.message);
     }
   };
   reader.readAsDataURL(file);
+});
+
+document.getElementById('avatar-remove-btn').addEventListener('click', async () => {
+  const avatarEl = document.getElementById('profile-avatar');
+  const previousHTML = avatarEl.innerHTML;
+  avatarEl.innerHTML = initials(currentUser.name);
+  document.getElementById('avatar-remove-btn').classList.add('hidden');
+  document.getElementById('avatar-input').value = '';
+  try {
+    await api(`/api/users/${currentUser.user_id}`, { method: 'PATCH', body: { avatar_url: null } });
+    currentUser.avatar_url = null;
+    const indicatorAvatar = document.getElementById('account-indicator-avatar');
+    if (indicatorAvatar) indicatorAvatar.innerHTML = initials(currentUser.name);
+    toast('Profile photo removed');
+  } catch (err) {
+    avatarEl.innerHTML = previousHTML;
+    document.getElementById('avatar-remove-btn').classList.remove('hidden');
+    toast(err.message);
+  }
 });
 
 function renderReviews(reviews){
@@ -818,7 +840,7 @@ function renderSessions(){
       else actions = `<span class="muted">Waiting on learner review</span>`;
     }
     return `
-      <div class="session-card">
+      <div class="session-card" data-session-idx="${i}">
         <div class="session-info">
           <div class="session-skill">${sessionLabel(s)}</div>
           <div class="session-meta">${s.scheduled_time}</div>
@@ -828,8 +850,8 @@ function renderSessions(){
       </div>`;
   }).join('') || `<p class="muted">Nothing here yet.</p>`;
 
-  document.querySelectorAll('[data-approve-idx]').forEach(btn => btn.addEventListener('click', () => respondSession(list[Number(btn.dataset.approveIdx)], 'approved')));
-  document.querySelectorAll('[data-decline-idx]').forEach(btn => btn.addEventListener('click', () => respondSession(list[Number(btn.dataset.declineIdx)], 'declined')));
+  document.querySelectorAll('[data-approve-idx]').forEach(btn => btn.addEventListener('click', () => respondSession(list[Number(btn.dataset.approveIdx)], 'approved', btn.closest('.session-card'))));
+  document.querySelectorAll('[data-decline-idx]').forEach(btn => btn.addEventListener('click', () => respondSession(list[Number(btn.dataset.declineIdx)], 'declined', btn.closest('.session-card'))));
   document.querySelectorAll('[data-cancel-idx]').forEach(btn => btn.addEventListener('click', () => cancelSession(list[Number(btn.dataset.cancelIdx)])));
   document.querySelectorAll('[data-confirm-idx]').forEach(btn => btn.addEventListener('click', () => completeSession(list[Number(btn.dataset.confirmIdx)])));
   document.querySelectorAll('[data-review-idx]').forEach(btn => btn.addEventListener('click', () => openReviewModal(list[Number(btn.dataset.reviewIdx)])));
@@ -860,14 +882,30 @@ document.querySelectorAll('[data-session-tab]').forEach(btn => {
   });
 });
 
-async function respondSession(session, status){
+async function respondSession(session, status, cardEl){
+  const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+  if (cardEl) {
+    const actionsEl = cardEl.querySelector('.session-actions');
+    const badgeEl = cardEl.querySelector('.status-badge');
+    // Optimistically collapse the two buttons into a single disabled
+    // label right away, so the user sees an immediate response instead
+    // of the card just vanishing once the tabs reload.
+    if (actionsEl) actionsEl.innerHTML = `<button class="btn btn-secondary" disabled>${statusLabel}</button>`;
+    if (badgeEl) {
+      badgeEl.className = `status-badge status-${status}`;
+      badgeEl.textContent = statusLabel;
+    }
+  }
   try {
     const action = status === 'approved' ? 'approve' : 'decline';
     await api(`/api/sessions/${session.session_id}/${action}`, { method: 'PATCH', body: { user_id: currentUser.user_id } });
     await markSessionNotificationsRead(session.session_id);
     toast(`Session ${status}`);
     await Promise.all([loadSessions(), loadNotifications()]);
-  } catch (err) { toast(err.message); }
+  } catch (err) {
+    renderSessions(); // roll the optimistic update back since the request failed
+    toast(err.message);
+  }
 }
 async function cancelSession(session){
   try {

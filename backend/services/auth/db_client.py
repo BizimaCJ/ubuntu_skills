@@ -37,7 +37,7 @@ def get_user_by_email(email):
 
 
 def insert_user(name, email, password_hash, verification_method, verification_status,
-                 verification_document_path=None, bio=None):
+                 verification_document_path=None, bio=None, degree_id=None, class_year=None):
     return _request(
         "POST", "/users",
         json={
@@ -45,6 +45,8 @@ def insert_user(name, email, password_hash, verification_method, verification_st
             "email": email,
             "password_hash": password_hash,
             "bio": bio,
+            "degree_id": degree_id,
+            "class_year": class_year,
             "verification_method": verification_method,
             "verification_status": verification_status,
             "verification_document_path": verification_document_path,
