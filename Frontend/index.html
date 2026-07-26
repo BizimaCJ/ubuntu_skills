@@ -295,6 +295,32 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="other-profile-modal">
+  <div class="modal">
+    <button class="modal-close" data-close-modal>×</button>
+    <div class="avatar avatar-lg" id="op-avatar"></div>
+    <h2 id="op-name"></h2>
+    <p class="muted" id="op-degree"></p>
+    <p id="op-bio"></p>
+    <div id="op-teach-chips" class="chip-row"></div>
+    <div id="op-learn-chips" class="chip-row"></div>
+    <div style="display:flex; gap:10px; margin-top:16px;">
+      <button class="btn btn-secondary" id="op-message-btn">Message</button>
+      <button class="btn btn-primary" id="op-request-btn">Request session</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="new-group-modal">
+  <div class="modal">
+    <button class="modal-close" data-close-modal>×</button>
+    <h2>Start a group chat</h2>
+    <p class="muted">Pick two or more people you've already messaged.</p>
+    <div id="new-group-people" style="max-height:260px; overflow-y:auto; margin-top:12px;"></div>
+    <button class="btn btn-primary btn-block" id="new-group-confirm-btn">Start group chat</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="app.js"></script>

@@ -240,8 +240,16 @@ document.querySelectorAll('.nav-btn[data-view]').forEach(btn => {
     document.getElementById('view-' + btn.dataset.view).classList.add('active');
   });
 });
-document.getElementById('profile-message-btn').addEventListener('click', () => {
-  document.querySelector('.nav-btn[data-view="messages"]').click();
+document.getElementById('profile-message-btn').addEventListener('click', async () => {
+  try {
+    const { conversation_id } = await api('/api/conversations', { method: 'POST', body: { participant_ids: [currentUser.user_id, currentUser.user_id] } });
+    await loadConversations();
+    activeConvId = conversation_id;
+    document.querySelector('.nav-btn[data-view="messages"]').click();
+    renderConvList(); renderChat();
+  } catch (err) {
+    toast(err.message);
+  }
 });
 
 /* ============================================================
@@ -508,8 +516,16 @@ async function loadConversations(){
     const { conversations: convs } = await api(`/api/users/${currentUser.user_id}/conversations`);
     conversations = (convs || []).map(c => {
       const others = (c.participants || []).filter(p => p.user_id !== currentUser.user_id);
-      const name = c.is_group ? 'Group chat' : (others[0]?.name || 'Conversation');
-      return { id: c.conversation_id, name, initials: initials(name), group: !!c.is_group };
+      const name = c.is_group
+        ? (others.map(p => p.name).join(', ') || 'Group chat')
+        : (others[0]?.name || (c.participants || []).length ? 'You' : 'Conversation');
+      return {
+        id: c.conversation_id,
+        name,
+        initials: initials(name),
+        group: !!c.is_group,
+        otherUserId: !c.is_group ? (others[0]?.user_id ?? currentUser.user_id) : null,
+      };
     });
     if (!activeConvId && conversations.length) activeConvId = conversations[0].id;
     renderConvList();
@@ -535,7 +551,14 @@ function renderConvList(){
 async function renderChat(){
   const c = conversations.find(x => x.id === activeConvId);
   if (!c) { document.getElementById('chat-header').innerHTML = ''; document.getElementById('chat-body').innerHTML = ''; return; }
-  document.getElementById('chat-header').innerHTML = `<div class="avatar avatar-sm">${c.initials}</div><span>${c.name}</span>`;
+  document.getElementById('chat-header').innerHTML = c.group
+    ? `<div class="avatar avatar-sm">${c.initials}</div><span>${c.name}</span>`
+    : `<div class="avatar avatar-sm" style="cursor:pointer" id="chat-header-avatar">${c.initials}</div><span style="cursor:pointer" id="chat-header-name">${c.name}</span>`;
+  if (!c.group) {
+    const openProfile = () => openOtherProfileModal(c.otherUserId);
+    document.getElementById('chat-header-avatar').addEventListener('click', openProfile);
+    document.getElementById('chat-header-name').addEventListener('click', openProfile);
+  }
   try {
     const { messages } = await api(`/api/conversations/${c.id}/messages`);
     document.getElementById('chat-body').innerHTML = (messages || [])
@@ -561,7 +584,33 @@ document.getElementById('chat-form').addEventListener('submit', async e => {
   }
 });
 document.getElementById('new-group-btn').addEventListener('click', () => {
-  toast('Pick two or more people from Search to start a group chat.');
+  const candidates = conversations.filter(c => !c.group && c.otherUserId && c.otherUserId !== currentUser.user_id);
+  if (candidates.length < 2) {
+    toast('Message at least two different people first, then you can start a group chat with them.');
+    return;
+  }
+  document.getElementById('new-group-people').innerHTML = candidates.map(c => `
+    <label style="display:flex; align-items:center; gap:10px; padding:8px 4px; cursor:pointer;">
+      <input type="checkbox" value="${c.otherUserId}">
+      <div class="avatar avatar-sm">${c.initials}</div>
+      <span>${c.name}</span>
+    </label>`).join('');
+  document.getElementById('new-group-modal').classList.add('active');
+});
+document.getElementById('new-group-confirm-btn').addEventListener('click', async () => {
+  const checked = Array.from(document.querySelectorAll('#new-group-people input:checked')).map(i => Number(i.value));
+  if (checked.length < 2) { toast('Pick at least two people'); return; }
+  try {
+    const { conversation_id } = await api('/api/conversations', {
+      method: 'POST',
+      body: { is_group: true, participant_ids: [currentUser.user_id, ...checked] },
+    });
+    closeModals();
+    await loadConversations();
+    activeConvId = conversation_id;
+    renderConvList(); await renderChat();
+    toast('Group chat started');
+  } catch (err) { toast(err.message); }
 });
 
 /* ============================================================
@@ -818,6 +867,11 @@ function renderCommunity(){
   document.getElementById('community-grid').innerHTML = groupSessions.map(g => {
     const memberCount = g.current_members ?? 0;
     const full = memberCount >= g.max_participants;
+    const alreadyJoined = (g.member_ids || []).includes(currentUser.user_id);
+    let label = 'Join session';
+    let disabled = false;
+    if (alreadyJoined) { label = 'Joined'; disabled = true; }
+    else if (full) { label = 'Full'; disabled = true; }
     return `
     <div class="gs-card">
       <div class="gs-top">
@@ -831,18 +885,24 @@ function renderCommunity(){
       <div class="gs-seats">${memberCount} / ${g.max_participants} joined</div>
       <div class="seats-bar"><div class="seats-fill" style="width:${(memberCount/g.max_participants)*100}%"></div></div>
       <div class="gs-actions">
-        <button class="btn ${full ? 'btn-secondary' : 'btn-primary'}" data-gs-join="${g.group_session_id}" ${full ? 'disabled' : ''}>${full ? 'Full' : 'Join session'}</button>
+        <button class="btn ${disabled ? 'btn-secondary' : 'btn-primary'}" data-gs-join="${g.group_session_id}" ${disabled ? 'disabled' : ''}>${label}</button>
       </div>
     </div>`;
   }).join('') || `<p class="muted">No group sessions scheduled yet — host one!</p>`;
   stampIcons(document.getElementById('community-grid'));
   document.querySelectorAll('[data-gs-join]').forEach(btn => btn.addEventListener('click', async () => {
+    if (btn.disabled) return;
+    btn.disabled = true; // prevent duplicate joins from rapid/repeat clicks while the request is in flight
+    const originalLabel = btn.textContent;
+    btn.textContent = 'Joining…';
     try {
       await api(`/api/group-sessions/${btn.dataset.gsJoin}/join`, { method: 'POST', body: { user_id: currentUser.user_id } });
       toast('You joined the session — added to the group chat.');
       await Promise.all([loadGroupSessions(), loadConversations()]);
     } catch (err) {
       toast(err.message);
+      btn.disabled = false;
+      btn.textContent = originalLabel;
     }
   }));
   document.querySelectorAll('[data-gs-chat]').forEach(btn => btn.addEventListener('click', () => {
@@ -854,10 +914,15 @@ document.getElementById('create-group-session-btn').addEventListener('click', ()
   document.getElementById('group-session-modal').classList.add('active');
 });
 document.getElementById('publish-group-session').addEventListener('click', async () => {
+  const btn = document.getElementById('publish-group-session');
+  if (btn.disabled) return;
   const topic = document.getElementById('gs-topic').value.trim();
   const time = document.getElementById('gs-time').value;
   const categoryId = document.getElementById('gs-category').value;
   if(!topic || !time || !categoryId){ toast('Add a topic, category, and time slot first'); return; }
+  btn.disabled = true;
+  const originalLabel = btn.textContent;
+  btn.textContent = 'Publishing…';
   try {
     await api('/api/group-sessions', {
       method: 'POST',
@@ -871,6 +936,9 @@ document.getElementById('publish-group-session').addEventListener('click', async
     toast('Group session published!');
   } catch (err) {
     toast(err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
   }
 });
 
@@ -901,6 +969,62 @@ document.getElementById('schedule-confirm-btn').addEventListener('click', async 
   if (scheduleModalAction) await scheduleModalAction(value);
   closeModals();
 });
+
+/* ============================================================
+   OTHER PERSON'S PROFILE — read-only view, opened by clicking a
+   name/photo in an open conversation.
+   ============================================================ */
+async function openOtherProfileModal(userId){
+  if (!userId) return;
+  try {
+    const [{ user }, { skills }] = await Promise.all([
+      api(`/api/users/${userId}`),
+      api(`/api/users/${userId}/skills`),
+    ]);
+    document.getElementById('op-avatar').textContent = initials(user.name);
+    document.getElementById('op-name').textContent = user.name;
+    const degree = degrees.find(d => d.degree_id === user.degree_id);
+    document.getElementById('op-degree').textContent = [degree ? degree.degree_name : null, user.class_year ? `Class of ${user.class_year}` : null].filter(Boolean).join(' · ');
+    document.getElementById('op-bio').textContent = user.bio || '';
+    const teach = (skills || []).filter(s => s.skill_type === 'teach');
+    const learn = (skills || []).filter(s => s.skill_type === 'learn');
+    document.getElementById('op-teach-chips').innerHTML = teach.map(s => `<span class="chip chip-teal">Teaches ${s.description}</span>`).join('');
+    document.getElementById('op-learn-chips').innerHTML = learn.map(s => `<span class="chip chip-steel">Wants ${s.description}</span>`).join('');
+
+    const isSelf = userId === currentUser.user_id;
+    document.getElementById('op-request-btn').style.display = isSelf ? 'none' : '';
+    document.getElementById('op-message-btn').onclick = async () => {
+      closeModals();
+      try {
+        const { conversation_id } = await api('/api/conversations', { method: 'POST', body: { participant_ids: [currentUser.user_id, userId] } });
+        await loadConversations();
+        activeConvId = conversation_id;
+        document.querySelector('.nav-btn[data-view="messages"]').click();
+        renderConvList(); renderChat();
+      } catch (err) { toast(err.message); }
+    };
+    document.getElementById('op-request-btn').onclick = () => {
+      closeModals();
+      openScheduleModal({
+        title: `Request a session with ${user.name}`,
+        sub: 'They can approve this time, or propose a different one.',
+        buttonLabel: 'Send request',
+        initialValue: '',
+        onConfirm: async (when) => {
+          try {
+            await api('/api/sessions', { method: 'POST', body: { learner_id: currentUser.user_id, teacher_id: userId, scheduled_time: when } });
+            toast(`Session requested with ${user.name}`);
+            await loadSessions();
+          } catch (err) { toast(err.message); }
+        }
+      });
+    };
+
+    document.getElementById('other-profile-modal').classList.add('active');
+  } catch (err) {
+    toast(err.message);
+  }
+}
 
 /* ============================================================
    CATEGORY PICK MODAL — used when adding a skill whose text

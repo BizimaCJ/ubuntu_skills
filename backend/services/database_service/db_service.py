@@ -743,7 +743,8 @@ def list_group_sessions():
         rows = execute(conn, 
             """
             SELECT GroupSessions.*, SkillCategories.category_name, Users.name AS teacher_name,
-                   (SELECT COUNT(*) FROM GroupSessionMembers WHERE GroupSessionMembers.group_session_id = GroupSessions.group_session_id) AS current_members
+                   (SELECT COUNT(*) FROM GroupSessionMembers WHERE GroupSessionMembers.group_session_id = GroupSessions.group_session_id) AS current_members,
+                   (SELECT array_agg(GroupSessionMembers.user_id) FROM GroupSessionMembers WHERE GroupSessionMembers.group_session_id = GroupSessions.group_session_id) AS member_ids
             FROM GroupSessions
             JOIN SkillCategories ON SkillCategories.category_id = GroupSessions.category_id
             JOIN Users ON Users.user_id = GroupSessions.teacher_id
@@ -868,6 +869,11 @@ def insert_conversation():
     Body: { is_group, participant_ids: [1, 2, 3], group_session_id }
     group_session_id is only set for conversations created automatically
     for a community group session.
+
+    For non-group conversations, this first checks whether a conversation
+    with exactly this same set of participants already exists (this also
+    covers messaging yourself, where participant_ids is [user_id, user_id])
+    and reuses it instead of creating a duplicate thread on every click.
     """
     data = request.get_json(silent=True) or {}
     is_group = 1 if data.get("is_group") else 0
@@ -877,8 +883,34 @@ def insert_conversation():
     if not participant_ids:
         return error_response("'participant_ids' must be a non empty list", 400)
 
+    # de-duplicate (messaging yourself sends the same id twice)
+    seen = []
+    for p in participant_ids:
+        p = int(p)
+        if p not in seen:
+            seen.append(p)
+    participant_ids = seen
+
     try:
         conn = get_db()
+
+        if not is_group:
+            target_set = frozenset(participant_ids)
+            candidate_rows = execute(conn,
+                "SELECT conversation_id FROM ConversationParticipants WHERE user_id = ?",
+                (participant_ids[0],),
+            ).fetchall()
+            for row in candidate_rows:
+                conv_id = row["conversation_id"]
+                conv_row = execute(conn, "SELECT is_group FROM Conversations WHERE conversation_id = ?", (conv_id,)).fetchone()
+                if not conv_row or conv_row["is_group"]:
+                    continue
+                members = execute(conn, "SELECT user_id FROM ConversationParticipants WHERE conversation_id = ?", (conv_id,)).fetchall()
+                member_set = frozenset(m["user_id"] for m in members)
+                if member_set == target_set:
+                    conn.close()
+                    return jsonify({"conversation_id": conv_id, "existing": True}), 200
+
         cur = execute(conn, 
             "INSERT INTO Conversations (is_group, group_session_id) VALUES (?, ?) RETURNING conversation_id",
             (is_group, group_session_id),
