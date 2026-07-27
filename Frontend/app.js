@@ -31,6 +31,28 @@ async function apiRequest(base, path, { method = 'GET', body } = {}) {
 const authApi = (path, opts) => apiRequest(AUTH_BASE, path, opts);
 const api = (path, opts) => apiRequest(API_BASE, path, opts);
 
+/* Same contract as apiRequest, but sends multipart form data instead of
+   JSON - needed for /register when a verification document is attached,
+   since a file can't ride inside a JSON body. */
+async function authApiMultipart(path, formData) {
+  let res;
+  try {
+    res = await fetch(AUTH_BASE + path, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData, // no Content-Type - browser sets the multipart boundary
+    });
+  } catch (err) {
+    throw new Error(`Could not reach the server at ${AUTH_BASE}. Is the backend running?`);
+  }
+  let data = null;
+  try { data = await res.json(); } catch (_) { /* empty body */ }
+  if (!res.ok) {
+    throw new Error((data && data.error) || `Request failed (${res.status})`);
+  }
+  return data;
+}
+
 /* ============================================================
    ICONS — tiny inline SVG set, injected wherever data-icon appears
    ============================================================ */
@@ -180,33 +202,44 @@ document.getElementById('login-form').addEventListener('submit', async e => {
 document.getElementById('signup-form').addEventListener('submit', async e => {
   e.preventDefault();
   const name = document.getElementById('signup-name').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
   const password = document.getElementById('signup-password').value;
   const degreeId = document.getElementById('signup-degree').value;
   const classYear = document.getElementById('signup-class-year').value;
   const usingDocument = document.querySelector('.verify-opt.active').dataset.verify === 'document';
 
-  const body = {
-    name,
-    password,
-    degree_id: degreeId ? Number(degreeId) : null,
-    class_year: classYear ? Number(classYear) : null,
-  };
-
-  if (usingDocument) {
-    const file = document.getElementById('signup-doc').files[0];
-    body.email = document.getElementById('signup-email').value.trim() || `${name.toLowerCase().replace(/\s+/g, '.')}@example.com`;
-    body.verification_document_path = file ? `uploads/${file.name}` : null;
-  } else {
-    body.email = document.getElementById('signup-email').value.trim();
-  }
-
-  if (!body.email) { toast('Enter an email address first'); return; }
+  if (!email) { toast('Enter an email address first'); return; }
 
   try {
-    const data = await authApi('/register', { method: 'POST', body });
+    let data;
+
+    if (usingDocument) {
+      const file = document.getElementById('signup-doc').files[0];
+      if (!file) { toast('Upload a document to verify your enrollment'); return; }
+
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('email', email);
+      formData.append('password', password);
+      if (degreeId) formData.append('degree_id', degreeId);
+      if (classYear) formData.append('class_year', classYear);
+      formData.append('document', file);
+
+      data = await authApiMultipart('/register', formData);
+    } else {
+      const body = {
+        name,
+        email,
+        password,
+        degree_id: degreeId ? Number(degreeId) : null,
+        class_year: classYear ? Number(classYear) : null,
+      };
+      data = await authApi('/register', { method: 'POST', body });
+    }
+
     if (data.verification_status === 'verified') {
       toast('Account created — logging you in…');
-      const loginData = await authApi('/login', { method: 'POST', body: { email: body.email, password } });
+      const loginData = await authApi('/login', { method: 'POST', body: { email, password } });
       currentUser = loginData.user;
       sessionStorage.setItem('ubuntuskills_user', JSON.stringify(currentUser));
       await enterApp();
@@ -1292,3 +1325,4 @@ document.getElementById('category-pick-confirm-btn').addEventListener('click', a
   if (categoryPickAction && category) await categoryPickAction(category);
   closeModals();
 });
+
