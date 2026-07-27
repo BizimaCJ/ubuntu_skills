@@ -57,6 +57,9 @@
       <label for="signup-name">Full name</label>
       <input type="text" id="signup-name" required>
 
+      <label for="signup-email">Email address</label>
+      <input type="email" id="signup-email" required>
+
       <label>How should we verify you're a student?</label>
       <div class="verify-toggle">
         <button type="button" class="verify-opt active" data-verify="email">
@@ -68,9 +71,7 @@
       </div>
 
       <div class="verify-panel active" data-verify-panel="email">
-        <label for="signup-email">Student email</label>
-        <input type="email" id="signup-email">
-        <p class="hint">We'll send a confirmation link to this address — instant, automatic, no waiting on a reviewer.</p>
+        <p class="hint">If the email above is from your school, you're verified instantly — no waiting on a reviewer.</p>
       </div>
 
       <div class="verify-panel" data-verify-panel="document">
